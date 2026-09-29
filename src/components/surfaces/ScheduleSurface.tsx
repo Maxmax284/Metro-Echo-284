@@ -218,7 +218,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
         ) : tab === "board" ? (
           <div className="space-y-3">
             <AgendaBoard />
-            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/calendar"; }} />
+            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/time"; }} />
           </div>
         ) : loading ? (
           <div className="py-10 text-center text-[12px] text-muted-foreground">Looking at the runway…</div>
@@ -266,7 +266,7 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
               ))}
             </Section>
             <QuickJump onNavigate={onNavigate} captures={reviewCaptures} actions={pendingActions} />
-            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/calendar"; }} />
+            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/time"; }} />
           </div>
         ) : tab === "upcoming" ? (
           <div className="space-y-2">
@@ -277,12 +277,12 @@ export function ScheduleSurface({ onNavigate }: { onNavigate?: (k: SurfaceKey) =
         ) : tab === "month" ? (
           <div className="space-y-3">
             <MonthGrid />
-            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/calendar"; }} />
+            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/time"; }} />
           </div>
         ) : (
           <div className="space-y-3">
             <WeekPlanner />
-            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/calendar"; }} />
+            <CalendarSyncPanel onOpenSettings={() => { window.location.href = "/settings/g/time"; }} />
           </div>
         )}
 

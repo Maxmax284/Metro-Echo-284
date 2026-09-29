@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
-  Rocket, User, CalendarClock, CalendarCheck2, Inbox, Radar, Sparkles, Plug, Gauge, Receipt, Bell,
+  Rocket, User, CalendarClock, Inbox, Radar, Sparkles, Plug, Receipt, Bell,
   type LucideIcon,
 } from "lucide-react";
 
@@ -13,6 +13,7 @@ import { CalendarFeedsSection } from "@/components/settings/CalendarFeedsSection
 import { MailSection } from "@/components/settings/MailSection";
 import { TimeRemindersSection } from "@/components/settings/TimeRemindersSection";
 import { RecapSettingsPanel } from "@/components/settings/RecapSettingsPanel";
+import { ProactiveAwarenessSection } from "@/components/settings/ProactiveAwarenessSection";
 import { PostureSection } from "@/components/settings/PostureSection";
 import { SensorConsentSection } from "@/components/settings/SensorConsentSection";
 import { OccasionsSection } from "@/components/settings/OccasionsSection";
@@ -24,11 +25,11 @@ import { NotificationChannelsSection } from "@/components/settings/NotificationC
 import { RoomMotionSection } from "@/components/settings/RoomMotionSection";
 import { SkinSection } from "@/components/settings/SkinSection";
 import { EcosystemSourcesPanel } from "@/components/settings/EcosystemSourcesPanel";
+import { DeviceReachSection } from "@/components/settings/DeviceReachSection";
 import { UsageModeSection } from "@/components/settings/UsageModeSection";
 import { CostTelemetryPanel } from "@/components/settings/CostTelemetryPanel";
 import { ApiRecordsSection } from "@/components/settings/ApiRecordsSection";
 import { IntakeCleanupSection } from "@/components/settings/IntakeCleanupSection";
-import { ConnectYourWorldSection } from "@/components/settings/ConnectYourWorldSection";
 
 
 export type SettingsGroup = {
@@ -91,18 +92,34 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     ),
   },
   {
-    id: "calendar",
-    title: "Your calendar",
-    blurb: "Sign in with Google so Echo reads your real calendar — or paste a read-only link.",
-    icon: CalendarCheck2,
-    render: () => <CalendarFeedsSection />,
-  },
-  {
-    id: "mail",
-    title: "Your inbox",
-    blurb: "Connect Gmail and switch on booking watch — flights Echo reads become drafts you approve.",
-    icon: Inbox,
-    render: () => <MailSection />,
+    id: "awareness",
+    title: "Your awareness",
+    blurb: "What Echo is allowed to notice — posture, sensors, occasions, and what it's keeping an eye on.",
+    icon: Radar,
+    render: () => (
+      <>
+        <ProactiveAwarenessSection />
+        <LinkOut
+          to="/?surface=work"
+          title="What Echo is keeping an eye on"
+          blurb="Every live watch with its last check and its next one. Check now, pause, or stop from the shelf on Work."
+        />
+        <PostureSection />
+        <SensorConsentSection />
+        <OccasionsSection />
+        <DeviceSignalsSection />
+        <LinkOut
+          to="/how/watch"
+          title="The watch loop"
+          blurb="Posture, which senses are on, live readings off a watch, the phone hand-off link, and the loop walked step by step."
+        />
+        <LinkOut
+          to="/how/paper"
+          title="Paper and phone"
+          blurb="Your Telegram loop, the page read, and one promise walked from message to receipt."
+        />
+      </>
+    ),
   },
   {
     id: "notifications",
@@ -120,37 +137,53 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   },
   {
     id: "time",
-    title: "Time and reminders",
-    blurb: "Your timezone, your day boundaries, when the daily recap lands.",
+    title: "Time and calendar",
+    blurb: "Your timezone, your day boundaries, the daily recap, and the calendars Echo reads.",
     icon: CalendarClock,
     render: () => (
       <>
         <TimeRemindersSection />
         <RecapSettingsPanel />
+        <CalendarFeedsSection />
       </>
     ),
   },
   {
-    id: "awareness",
-    title: "Awareness and senses",
-    blurb: "What Echo is allowed to notice, your posture, and how it reaches you.",
-    icon: Radar,
+    id: "mail",
+    title: "Your inbox",
+    blurb: "Connect Gmail and switch on booking watch — flights Echo reads become drafts you approve.",
+    icon: Inbox,
+    render: () => <MailSection />,
+  },
+  {
+    id: "connections",
+    title: "Connections and workspaces",
+    blurb: "Doors to every connection, the one health home, and the lanes your work lives in.",
+    icon: Plug,
     render: () => (
       <>
         <LinkOut
-          to="/how/watch"
-          title="The watch loop"
-          blurb="Posture, which senses are on, live readings off a watch, the phone hand-off link, and the loop walked step by step."
+          to="/settings/integrations"
+          title="Connection health"
+          blurb="The one home for status, doctrine and kill switches — Camp State, CampCore, Telegram, Email, Calendar, Fenrir, WhatsApp."
         />
         <LinkOut
-          to="/how/paper"
-          title="Paper and phone"
-          blurb="Your Telegram loop, the page read, and one promise walked from message to receipt."
+          to="/settings/telegram"
+          title="Telegram"
+          blurb="Connect your bot, pair your phone, and watch messages land in the Inbox."
         />
-        <PostureSection />
-        <SensorConsentSection />
-        <OccasionsSection />
-        <DeviceSignalsSection />
+        <LinkOut
+          to="/settings/connected-accounts"
+          title="Connected accounts"
+          blurb="Inbound mail addresses and linked channels, with the way to disconnect each."
+        />
+        <LinkOut
+          to="/settings/workspaces"
+          title="Workspaces & branding"
+          blurb="Create lanes, manage members, give each workspace its own short code and accent."
+        />
+        <EcosystemSourcesPanel />
+        <DeviceReachSection />
       </>
     ),
   },
@@ -167,57 +200,14 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     ),
   },
   {
-    id: "connections",
-    title: "Connections and workspaces",
-    blurb: "Platforms, messaging, sources, and the lanes your work lives in.",
-    icon: Plug,
-    render: () => (
-      <>
-        <ConnectYourWorldSection />
-        <LinkOut
-          to="/settings/telegram"
-          title="Telegram"
-          blurb="Connect your bot, pair your phone, and watch messages land in the Inbox."
-        />
-        <LinkOut
-          to="/guide/telegram"
-          title="What the chat can do"
-          blurb="File types, sizes, read-only sources, and what only finishes here. Save a copy to hand to someone else."
-        />
-        <LinkOut
-
-          to="/settings/integrations"
-          title="Platform Integrations"
-          blurb="Camp State, CampCore, Telegram, Email, Calendar, Fenrir, WhatsApp. Status, doctrine and kill switches."
-        />
-        <LinkOut
-          to="/settings/workspaces"
-          title="Workspaces & branding"
-          blurb="Create lanes, manage members, give each workspace its own short code and accent."
-        />
-        <EcosystemSourcesPanel />
-      </>
-    ),
-  },
-  {
-    id: "spending",
-    title: "Spending and safety",
-    blurb: "Overall posture, kill switches, and what everything is costing.",
-    icon: Gauge,
+    id: "records",
+    title: "Records and spending",
+    blurb: "Limits, kill switches, what everything is costing, and clearing out old intake.",
+    icon: Receipt,
     render: () => (
       <>
         <UsageModeSection />
         <CostTelemetryPanel />
-      </>
-    ),
-  },
-  {
-    id: "records",
-    title: "Records and cleanup",
-    blurb: "Limits, the raw call record, and clearing out old intake.",
-    icon: Receipt,
-    render: () => (
-      <>
         <IntakeCleanupSection />
         <ApiRecordsSection />
       </>
@@ -225,6 +215,20 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   },
 ];
 
+/**
+ * Old group ids that merged into a new home. Bookmarks and deep links keep
+ * working — SettingsGroup redirects them to the resolved id.
+ */
+const GROUP_ALIASES: Record<string, string> = {
+  calendar: "time",
+  spending: "records",
+};
+
+export function resolveSettingsGroupId(id: string | undefined): string | undefined {
+  if (!id) return id;
+  return GROUP_ALIASES[id] ?? id;
+}
+
 export function findSettingsGroup(id: string | undefined): SettingsGroup | undefined {
-  return SETTINGS_GROUPS.find((g) => g.id === id);
+  return SETTINGS_GROUPS.find((g) => g.id === resolveSettingsGroupId(id));
 }
