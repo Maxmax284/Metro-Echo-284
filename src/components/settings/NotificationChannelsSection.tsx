@@ -21,7 +21,7 @@ export function NotificationChannelsSection() {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
 
-  const audit = async (event: string, payload: Record<string, unknown> = {}) => {
+  const audit = async (event: string, payload: Record<string, any> = {}) => {
     if (!user) return;
     await supabase.from("audit_log").insert({
       user_id: user.id,
