@@ -39,7 +39,7 @@ export function ConcourseLine({
 
       {/* The travelling light — slides to whichever station you pulled into. */}
       <span
-        className="absolute top-1/2 h-[2px] w-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-r from-transparent via-primary/90 to-transparent transition-[left] duration-500 ease-[var(--ease-out)] motion-reduce:transition-none"
+        className="absolute top-1/2 h-[2px] w-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-r from-transparent via-primary/90 to-transparent transition-[left] duration-[var(--motion-slow)] ease-[var(--ease-out)] motion-reduce:transition-none"
         style={{ left: activePos }}
       />
 
