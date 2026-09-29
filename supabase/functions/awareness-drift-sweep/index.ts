@@ -223,6 +223,38 @@ async function reachPhone(
   scopeCols: Record<string, unknown>,
   decision: { title: string; nextStep: string; entityType?: string; entityId?: string; urgency: string },
 ): Promise<void> {
+  /* The ladder gate: the sweep's own urgency call still answers to the
+     person's per-category floor. A hold leaves a receipt, never silence —
+     the nudge itself is already waiting in Today. */
+  const { data: prof } = await sb
+    .from("profiles")
+    .select("preferences")
+    .eq("id", userId)
+    .maybeSingle();
+  const gate = applyFloor({
+    urgency: decision.urgency,
+    category: categoryForSituation(decision.entityType),
+    floors: readFloors((prof?.preferences as Record<string, unknown>) ?? null),
+  });
+  if (gate.channel !== "push") {
+    await sb.from("audit_log").insert({
+      user_id: userId,
+      ...scopeCols,
+      entity_type: "nudge",
+      entity_id: decision.entityId ?? null,
+      event: "nudge.held_by_settings",
+      payload: {
+        channel: gate.channel,
+        level: gate.level,
+        category: gate.category,
+        urgency: decision.urgency,
+        because: gate.because,
+        source: "scheduled_sweep",
+      },
+    });
+    return;
+  }
+
   const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
   const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
   const vapidSubject = Deno.env.get("VAPID_SUBJECT") ?? "";
@@ -254,11 +286,12 @@ async function reachPhone(
   });
   const payload = pushPayload(plan);
 
+  const header = pushUrgencyHeader(levelForUrgency(decision.urgency));
   for (const s of subs as any[]) {
     const r = await sendWebPush(
       { endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth },
       { ...payload, tag: "vanta-awareness" },
-      { vapidPublicKey, vapidPrivateKey, vapidSubject },
+      { vapidPublicKey, vapidPrivateKey, vapidSubject, urgency: header },
     );
     if (r.ok) {
       sent++;
