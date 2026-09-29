@@ -20,7 +20,7 @@ import {
   packDiff,
   whereOnJourney,
 } from "../_shared/journey.ts";
-import { journeyNotice, type JourneyNotice } from "../_shared/journeyNotice.ts";
+import { journeyNotice } from "../_shared/journeyNotice.ts";
 import { reachOnce } from "../_shared/delivery/reach.ts";
 import { writeAuditEvent } from "../_shared/auditEvent.ts";
 import { minutesToDeparture, preDepartureNotice, preDeparturePack } from "../_shared/preDeparture.ts";
@@ -542,7 +542,7 @@ Deno.serve(async (req) => {
 
         /* Quiet hours hold the note, never lose it: no claim is made while they
            run, so the next sweep tries again until it reaches a surface. */
-        const gate = await reachGate(sb, userId, { urgency: "high" } as JourneyNotice);
+        const gate = await reachGate(sb, userId);
         if (!gate.allowed) continue;
         const surface = await reachOnce(sb, {
           userId,
