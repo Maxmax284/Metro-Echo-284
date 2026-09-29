@@ -43,6 +43,8 @@ export type UserPreferences = {
   trips_wrapped?: string[];
   /** The once-per-account welcome ran. Set once, never reset by the app. */
   intro_seen_at?: string | null;
+  /** Per-category interruption floor: buzz | today | digest. Absent = defaults. */
+  notify_floors?: Record<string, string>;
 };
 
 const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
@@ -69,6 +71,7 @@ const DEFAULTS: Required<Omit<UserPreferences, "timezone">> = {
   entry: {},
   trips_wrapped: [],
   intro_seen_at: null,
+  notify_floors: {},
 };
 
 export function useUserPreferences() {

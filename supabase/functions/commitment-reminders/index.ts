@@ -9,6 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { sendWebPush } from "../_shared/webpush.ts";
 import { composeReminder, sendTelegramReminder } from "../_shared/reminderMessage.ts";
 import { isInQuietHours } from "../_shared/drift.ts";
+import { applyFloor, pushUrgencyHeader, readFloors } from "../_shared/notifyPolicy.ts";
 
 
 
@@ -197,7 +198,20 @@ Deno.serve(async (req: Request) => {
         });
       } else {
         const urgent = c.priority === "urgent";
-        if (!urgent && isInQuietHours(prof.tz, prof.prefs.quiet_hours_start, prof.prefs.quiet_hours_end)) {
+        /* The ladder gate: a schedule floor of Today or digest holds the buzz.
+           Held is a receipt, never silence — the commitment stays open. */
+        const gate = applyFloor({
+          urgency: "time_sensitive",
+          category: "schedule",
+          floors: readFloors(prof.prefs as Record<string, unknown>),
+        });
+        if (gate.channel !== "push") {
+          pushSkipped++;
+          await audit("reminder.push_held_by_settings", {
+            channel: gate.channel,
+            because: gate.because,
+          });
+        } else if (!urgent && isInQuietHours(prof.tz, prof.prefs.quiet_hours_start, prof.prefs.quiet_hours_end)) {
           pushSkipped++;
           await audit("reminder.push_skipped_quiet_hours", { tz: prof.tz });
         } else {
@@ -239,11 +253,12 @@ Deno.serve(async (req: Request) => {
                 data: { commitment_id: c.id, overdue },
               };
               let anySent = false;
+              const header = pushUrgencyHeader(gate.level);
               for (const s of subs) {
                 const r = await sendWebPush(
                   { endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth },
                   payload,
-                  { vapidPublicKey: vapidPublic, vapidPrivateKey: vapidPrivate, vapidSubject },
+                  { vapidPublicKey: vapidPublic, vapidPrivateKey: vapidPrivate, vapidSubject, urgency: header },
                 );
                 if (r.ok) {
                   anySent = true;
