@@ -20,6 +20,8 @@ export function NotificationChannelsSection() {
   const [tgStatus, setTgStatus] = useState<{ lastSent: string | null; skipped: number; failed: number } | null>(null);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [pulseTesting, setPulseTesting] = useState(false);
+  const [pulseResult, setPulseResult] = useState<string | null>(null);
 
   const audit = async (event: string, payload: Record<string, any> = {}) => {
     if (!user) return;
@@ -72,6 +74,44 @@ export function NotificationChannelsSection() {
     } finally {
       setTesting(false);
       await audit("telegram.test_requested", { sample: "camp_state" });
+    }
+  };
+
+  /**
+   * Test a pulse — a real push through the same rail everything else uses.
+   * It buzzes even inside quiet hours because the person explicitly asked for
+   * it; the result line says plainly what happened, including nothing.
+   */
+  const sendPulse = async () => {
+    setPulseTesting(true);
+    setPulseResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("push-test");
+      if (error) {
+        setPulseResult("Couldn't send — the delivery service returned an error.");
+        toast.error({ title: "Test pulse failed" });
+        return;
+      }
+      const d = (data ?? {}) as { sent?: number; failed?: number; expired?: number; reason?: string };
+      if (d.reason === "no_subscriptions") {
+        setPulseResult("No device is registered yet. Enable push in the panel above, then test again.");
+        return;
+      }
+      if ((d.sent ?? 0) > 0) {
+        setPulseResult(
+          `Pulse delivered to ${d.sent} device${d.sent === 1 ? "" : "s"} — it should buzz right now. ` +
+          "It ignores quiet hours because you asked for it; nothing else does." +
+          ((d.failed ?? 0) > 0 ? ` ${d.failed} device${d.failed === 1 ? "" : "s"} didn't confirm — the panel above shows why.` : ""),
+        );
+        toast.success({ title: "Test pulse delivered" });
+        return;
+      }
+      setPulseResult("Sent, but no device confirmed delivery. The panel above shows what went wrong.");
+    } catch (e) {
+      setPulseResult(e instanceof Error ? e.message : "Couldn't send.");
+    } finally {
+      setPulseTesting(false);
+      await audit("push.test_requested", {});
     }
   };
 
@@ -224,30 +264,49 @@ export function NotificationChannelsSection() {
               </div>
             )}
           </li>
-          <li className="flex items-start justify-between gap-3 py-2">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-xs font-medium">
-                <Bell className="h-3 w-3" /> Push
-                <span className={cn(
-                  "rounded-full px-1.5 py-0 text-[9px] uppercase tracking-wider ring-1",
-                  prefs.push_reminders_enabled
-                    ? "bg-primary/15 text-primary ring-primary/30"
-                    : "bg-muted/30 text-muted-foreground ring-border/50",
-                )}>
-                  {prefs.push_reminders_enabled ? "on" : "off"}
-                </span>
+          <li className="py-2">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-xs font-medium">
+                  <Bell className="h-3 w-3" /> Push
+                  <span className={cn(
+                    "rounded-full px-1.5 py-0 text-[9px] uppercase tracking-wider ring-1",
+                    prefs.push_reminders_enabled
+                      ? "bg-primary/15 text-primary ring-primary/30"
+                      : "bg-muted/30 text-muted-foreground ring-border/50",
+                  )}>
+                    {prefs.push_reminders_enabled ? "on" : "off"}
+                  </span>
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  Browser / PWA push. Flights that move and critical risks buzz even in quiet hours;
+                  everything else waits for morning. Device setup lives in the panel above.
+                </div>
               </div>
-              <div className="text-[11px] text-muted-foreground">
-                Browser / PWA push. Device setup lives in the panel above.
-              </div>
+              <Switch
+                checked={!!prefs.push_reminders_enabled}
+                onCheckedChange={(v) => {
+                  update({ push_reminders_enabled: v });
+                  audit("preferences.updated", { field: "push_reminders_enabled", value: v });
+                }}
+              />
             </div>
-            <Switch
-              checked={!!prefs.push_reminders_enabled}
-              onCheckedChange={(v) => {
-                update({ push_reminders_enabled: v });
-                audit("preferences.updated", { field: "push_reminders_enabled", value: v });
-              }}
-            />
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 min-h-[44px] gap-1.5 text-xs sm:min-h-0"
+                disabled={pulseTesting}
+                onClick={sendPulse}
+              >
+                <Bell className="h-3 w-3" />
+                {pulseTesting ? "Sending…" : "Test a pulse"}
+              </Button>
+              <span className="text-[11px] text-muted-foreground">
+                {pulseResult ?? "Sends a real push to your registered devices, through the same rail as everything else."}
+              </span>
+            </div>
           </li>
         </ul>
       </div>
