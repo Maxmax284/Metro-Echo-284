@@ -26,6 +26,7 @@ import {
   resumeWatch,
 } from "@/lib/watch";
 import { debriefPrompt, radarModel, quietHeadline, type RadarRow } from "@/lib/radar";
+import { SolariBoard } from "@/components/schedule/SolariBoard";
 
 export function RadarCard() {
   const { items, loading, refresh } = useWatches({ openOnly: false, limit: 30 });
@@ -112,12 +113,14 @@ export function RadarCard() {
         </div>
       ) : (
         <>
-          <p className={cn(
-            "mt-2 text-[11.5px] leading-snug",
-            model.kind === "attention" ? "text-foreground" : "text-muted-foreground",
-          )}>
-            {model.kind === "quiet" ? quietHeadline(model.openCount) : model.headline}
-          </p>
+          {/* The bulletin's status line is a real departure board: when the
+              answer changes, the flaps riffle and land on the new truth.
+              Unchanged words hold still — the clack is an event, not a loop. */}
+          <SolariBoard
+            className="mt-2"
+            tone={model.kind === "attention" ? "warn" : "default"}
+            text={model.kind === "quiet" ? quietHeadline(model.openCount) : model.headline}
+          />
           <ul className="mt-2 space-y-1.5">
             {model.rows.map((r) => {
               const open = (OPEN_WATCH_STATES as string[]).includes(r.state);
