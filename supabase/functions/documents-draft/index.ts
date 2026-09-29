@@ -10,7 +10,7 @@ import { z } from "https://esm.sh/zod@3.23.8";
 import { VANTA_CORE_VOICE } from "../_shared/vantaVoice.ts";
 import { streamAstraText } from "../_shared/aiResponses.ts";
 import { chatIdForUser, sendTelegram } from "../_shared/telegramApi.ts";
-import { claimDelivery, hasPushDevice, reachPhone } from "../_shared/delivery/reach.ts";
+import { claimDelivery, floorGate, hasPushDevice, reachPhone } from "../_shared/delivery/reach.ts";
 
 
 const Body = z.object({
@@ -294,6 +294,20 @@ async function publishDraftReady(admin: any, input: {
   const base = (Deno.env.get("VANTA_PUBLIC_URL") ?? "https://metroecho.lovable.app").replace(/\/$/, "");
   const url = `${base}/documents?document=${input.documentId}&ack=telegram`;
   const deliveryKey = `nudge:${dedupe}`;
+
+  /* The ladder decides whether a ready draft may interrupt. It is important —
+     the person asked for it — so it buzzes unless their documents floor says
+     Today or digest. A hold is never silence: Today already carries the nudge. */
+  const gate = await floorGate(admin, {
+    userId: input.userId,
+    organizationId: input.organizationId,
+    urgency: "time_sensitive",
+    entityType: "document",
+    entityId: input.documentId,
+    source: "documents_draft",
+  });
+  if (gate.channel !== "push") return;
+
   const claim = (surface: "phone" | "messaging", because: string) => claimDelivery(admin, {
     userId: input.userId,
     organizationId: input.organizationId,
@@ -301,7 +315,7 @@ async function publishDraftReady(admin: any, input: {
     situationId: input.documentId,
     dedupeKey: deliveryKey,
     surface,
-    urgency: "attention",
+    urgency: "time_sensitive",
     headline: `${input.title} is ready to review`,
     because,
   });
@@ -319,10 +333,11 @@ async function publishDraftReady(admin: any, input: {
       detail: "Drafted from the notes and receipts you selected. Nothing was approved or sent.",
       url: `${url}&mode=review`,
       changeKey: dedupe,
-      urgency: "attention",
+      urgency: "time_sensitive",
       entityType: "document",
       entityId: input.documentId,
       source: "documents_draft",
+      gateApplied: true,
     });
     if (pushed) return;
     await admin.from("deliveries")
