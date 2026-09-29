@@ -58,7 +58,7 @@ export function ConcourseLine({
             )}
             <span
               className={cn(
-                "block h-[7px] w-[7px] rounded-full border transition-all duration-300 ease-[var(--ease-out)] motion-reduce:transition-none",
+                "block h-[7px] w-[7px] rounded-full border transition-all duration-[var(--motion-base)] ease-[var(--ease-out)] motion-reduce:transition-none",
                 isActive
                   ? accent
                     ? "scale-125 border-accent bg-accent drop-shadow-[0_0_6px_hsl(var(--accent)/0.8)]"
