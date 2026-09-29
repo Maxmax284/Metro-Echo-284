@@ -19,6 +19,8 @@ export type RadarRow = {
   stateLabel: string;
   /** "Checked 2 h ago · next in ~4 h" — honest when never checked or paused. */
   check: string;
+  /** The headline Echo actually saw on the last read, when there was one. */
+  latest: string | null;
   needsAttention: boolean;
 };
 
@@ -96,6 +98,7 @@ export function radarModel(watches: Watch[], now: number = Date.now()): RadarMod
       state: w.state,
       stateLabel: WATCH_LABEL[w.state],
       check: checkWords(w, now),
+      latest: w.last_read ?? null,
       needsAttention: needsAttention(w, now),
     }))
     .sort((a, b) => {
@@ -118,4 +121,21 @@ export function quietHeadline(openCount: number): string {
   return openCount === 1
     ? "Watching 1 thing — nothing has moved."
     : `Watching ${openCount} things — nothing has moved.`;
+}
+
+/**
+ * The question a radar row hands to Echo when you tap Ask Echo. Watch goals
+ * are written for the board ("Watch the web for “X”"), not for a conversation,
+ * so the prompt folds them back into how a person would ask.
+ */
+export function debriefPrompt(goal: string): string {
+  const g = goal.trim();
+  const stop = (s: string) => (/[.!?]$/.test(s) ? s : `${s}.`);
+  const topic = /^Watch the web for [“"]([\s\S]+)[”"]$/.exec(g);
+  if (topic) return `Catch me up on ${stop(topic[1])}`;
+  const pageWhy = /^Watch (\S+) — ([\s\S]+)$/.exec(g);
+  if (pageWhy) return `Catch me up on ${pageWhy[2]} (${pageWhy[1]}).`;
+  const page = /^Watch (\S+) for changes$/.exec(g);
+  if (page) return `What's new on ${page[1]}?`;
+  return `Catch me up on this: ${g}`;
 }

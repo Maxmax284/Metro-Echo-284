@@ -5,11 +5,23 @@
 //
 // A finished watch is the whole point of a watch, so it stays here for a day
 // with what it found. Clearing it is the user's move, not Echo's.
+import { useState } from "react";
 import { Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { useWatches } from "@/hooks/useWatches";
-import { WATCH_LABEL, WATCH_TONE, OPEN_WATCH_STATES, stopWatch, pauseWatch, resumeWatch, watchLine, type Watch } from "@/lib/watch";
+import {
+  WATCH_LABEL,
+  WATCH_TONE,
+  OPEN_WATCH_STATES,
+  checkAllWatchesNow,
+  stopWatch,
+  pauseWatch,
+  resumeWatch,
+  sweepSummaryLine,
+  watchLine,
+  type Watch,
+} from "@/lib/watch";
 import { checkWords } from "@/lib/radar";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,6 +40,7 @@ function worthShowing(w: Watch): boolean {
 
 export function WatchShelf() {
   const { items, loading, refresh } = useWatches({ openOnly: false, limit: 30 });
+  const [sweeping, setSweeping] = useState(false);
   const shown = items.filter(worthShowing);
   const settled = shown.filter((w) => !isOpen(w) && w.state !== "paused");
 
@@ -79,9 +92,20 @@ export function WatchShelf() {
     }
   };
 
+  /* Asking is forcing: every open watch gets checked this second, and the
+     answer comes back out loud — news or an honest "nothing has moved". */
   const checkNow = async () => {
-    await supabase.functions.invoke("watch-sweep", { body: {} }).catch(() => null);
-    refresh();
+    if (sweeping) return;
+    setSweeping(true);
+    try {
+      const res = await checkAllWatchesNow();
+      toast.success(sweepSummaryLine(res.checked, res.news));
+      refresh();
+    } catch {
+      toast.error("Could not run the checks right now.");
+    } finally {
+      setSweeping(false);
+    }
   };
 
   /* Clearing removes the card, never the receipt: the audit row stays. */
@@ -100,9 +124,10 @@ export function WatchShelf() {
         <h3 className="text-xs font-medium">Echo is keeping an eye on</h3>
         <button
           onClick={() => void checkNow()}
-          className="ml-auto min-h-[36px] text-xs text-primary hover:underline"
+          disabled={sweeping}
+          className="ml-auto min-h-[36px] text-xs text-primary hover:underline disabled:opacity-50"
         >
-          Check now
+          {sweeping ? "Checking…" : "Check now"}
         </button>
       </div>
       <ul className="mt-2 space-y-1.5">
@@ -114,6 +139,11 @@ export function WatchShelf() {
                 <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
                   {watchLine(w)}
                 </span>
+                {w.last_read ? (
+                  <span className="mt-0.5 block text-[11px] leading-snug text-foreground/80">
+                    Top of the board: {w.last_read}
+                  </span>
+                ) : null}
                 {isOpen(w) || w.state === "paused" ? (
                   <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground/80">
                     {checkWords(w)}

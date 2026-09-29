@@ -133,6 +133,11 @@ const BY_KIND: Record<ThreadContextKind, AskSuggestion[]> = {
     { id: "watch", label: "Keep an eye on it", question: "Keep an eye on this for me." },
     { id: "quiet", label: "Not important", question: "This isn't important — stay quiet about it." },
   ],
+  watch: [
+    { id: "catch-up", label: "Catch me up", question: "Catch me up on this — what's the latest?" },
+    { id: "moved", label: "What moved?", question: "What changed since Echo started watching this?" },
+    { id: "stop", label: "Stop watching", question: "Stop watching this." },
+  ],
 };
 
 const NO_CONTEXT: AskSuggestion[] = [
@@ -173,6 +178,7 @@ const KIND_LABEL: Record<ThreadContextKind, string> = {
   calendar: "Meeting",
   mail: "Mail",
   nudge: "Heads-up",
+  watch: "Watch",
 };
 
 export function contextKindLabel(kind: ThreadContextKind | null | undefined): string | null {
@@ -205,6 +211,8 @@ export function contextHref(kind: ThreadContextKind | null | undefined, id: stri
       return "/?surface=inbox";
     case "nudge":
       return "/?surface=today";
+    case "watch":
+      return "/?surface=work";
     default:
       return null;
   }

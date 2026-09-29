@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  radarModel, checkWords, needsAttention, spanWords, quietHeadline,
+  radarModel, checkWords, needsAttention, spanWords, quietHeadline, debriefPrompt,
   RADAR_BEHIND_MS, RADAR_FAILED_NEWS_MS,
 } from "@/lib/radar";
 import type { Watch } from "@/lib/watch";
@@ -20,6 +20,7 @@ function watch(p: Partial<Watch>): Watch {
     next_check_at: new Date(NOW + 30 * 60_000).toISOString(),
     attempts: 4,
     outcome: null,
+    last_read: null,
     created_at: new Date(NOW - 86_400_000).toISOString(),
     updated_at: new Date(NOW - 30 * 60_000).toISOString(),
     ...p,
@@ -135,5 +136,39 @@ describe("radarModel", () => {
     const model = radarModel([watch({}), watch({ state: "needs_you" })], NOW);
     if (model.kind !== "attention") throw new Error("expected attention");
     expect(model.rows[0].state).toBe("needs_you");
+  });
+
+  it("carries the headline Echo actually saw onto the row", () => {
+    const model = radarModel([watch({ last_read: "River steady at Bang Sai gauge" })], NOW);
+    if (model.kind === "empty") throw new Error("expected rows");
+    expect(model.rows[0].latest).toBe("River steady at Bang Sai gauge");
+  });
+});
+
+describe("debriefPrompt", () => {
+  it("folds a topic watch back into how a person asks", () => {
+    expect(debriefPrompt("Watch the web for “Bangkok flooding”")).toBe("Catch me up on Bangkok flooding.");
+  });
+
+  it("never doubles punctuation the goal already carries", () => {
+    expect(debriefPrompt("Watch the web for “What's going on with the Bangkok flooding?”")).toBe(
+      "Catch me up on What's going on with the Bangkok flooding?",
+    );
+  });
+
+  it("folds a page watch with a reason into one question", () => {
+    expect(debriefPrompt("Watch vendor.example — the price drop")).toBe(
+      "Catch me up on the price drop (vendor.example).",
+    );
+  });
+
+  it("folds a bare page watch into a what's-new", () => {
+    expect(debriefPrompt("Watch status.example for changes")).toBe("What's new on status.example?");
+  });
+
+  it("passes any other goal through with the watch named", () => {
+    expect(debriefPrompt("Keep an eye on the gate change")).toBe(
+      "Catch me up on this: Keep an eye on the gate change",
+    );
   });
 });

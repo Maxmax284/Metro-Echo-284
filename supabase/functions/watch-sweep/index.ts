@@ -35,7 +35,10 @@ Deno.serve(async (req: Request) => {
   try {
     const now = new Date();
 
-    /* One caller may sweep only their own watches; the cron sweeps everyone. */
+    /* One caller may sweep only their own watches; the cron sweeps everyone.
+       A person pressing "Check now" forces their own open watches checked
+       right now, due or not — waiting for the schedule when you asked is a
+       dead button. A forced check never leaves the caller's own rows. */
     let onlyUserId: string | null = null;
     const authHeader = req.headers.get("Authorization") ?? "";
     if (authHeader) {
@@ -48,22 +51,37 @@ Deno.serve(async (req: Request) => {
       onlyUserId = data?.user?.id ?? null;
     }
 
+    const body = (await req.json().catch(() => ({}))) as { watch_id?: unknown; force?: unknown };
+    const onlyWatchId = typeof body?.watch_id === "string" ? body.watch_id : null;
+    const wantsForce = body?.force === true;
+
     let q = admin
       .from("watches")
       .select("*")
-      .in("state", ["on_it", "watching", "waiting"])
-      .lte("next_check_at", now.toISOString())
-      .limit(200);
-    if (onlyUserId) q = q.eq("user_id", onlyUserId);
+      .in("state", ["on_it", "watching", "waiting"]);
+    if (onlyWatchId) {
+      if (!onlyUserId) return jsonResponse({ error: "Sign in to check a watch." }, 401);
+      q = q.eq("id", onlyWatchId).eq("user_id", onlyUserId).limit(1);
+    } else if (wantsForce && onlyUserId) {
+      q = q.eq("user_id", onlyUserId).order("next_check_at", { ascending: true }).limit(25);
+    } else {
+      q = q.lte("next_check_at", now.toISOString()).limit(200);
+      if (onlyUserId) q = q.eq("user_id", onlyUserId);
+    }
+    const forced = !!onlyWatchId || (wantsForce && !!onlyUserId);
 
     const { data, error } = await q;
     if (error) return jsonResponse({ error: error.message }, 500);
 
     const rows = (data ?? []) as WatchRow[];
+    if (onlyWatchId && rows.length === 0) {
+      return jsonResponse({ ok: false, error: "That watch is not open any more." }, 404);
+    }
     let checked = 0;
     let settled = 0;
 
     let skipped = 0;
+    const results: Array<{ id: string; state: string; outcome: string | null }> = [];
 
     /* One timezone lookup per person, so the outcome reads in their own clock. */
     const zones = new Map<string, string | null>();
@@ -76,7 +94,7 @@ Deno.serve(async (req: Request) => {
     };
 
     for (const row of rows) {
-      if (!isDue(row, now)) continue;
+      if (!forced && !isDue(row, now)) continue;
 
       /* Claim the row before checking it. Two overlapping sweeps cannot both
          win this update, so the same watch is never checked twice at once. */
@@ -94,6 +112,10 @@ Deno.serve(async (req: Request) => {
 
       checked += 1;
       const attempts = row.attempts + 1;
+
+      /* What Echo actually saw, so the radar can show a real headline instead
+         of a bare "nothing moved". Written only when a read really happened. */
+      let lastRead: string | null = null;
 
       let result: CheckResult = { state: row.state, outcome: null };
 
@@ -180,6 +202,7 @@ Deno.serve(async (req: Request) => {
                 .eq("id", row.id);
             }
           } else {
+            lastRead = String(got.read.title ?? got.read.host).slice(0, 140);
             const checked = checkPage(
               { url, fingerprint: (row.success_when?.fingerprint as string | null) ?? null },
               got.read,
@@ -229,6 +252,7 @@ Deno.serve(async (req: Request) => {
         } else {
           try {
             const hits = await serpSearch(query, Deno.env.get("SERPAPI_KEY") ?? "");
+            lastRead = hits[0]?.title ? hits[0].title.slice(0, 140) : null;
             const checked = checkSearch(
               { fingerprint: (row.success_when?.fingerprint as string | null) ?? null },
               query,
@@ -306,8 +330,11 @@ Deno.serve(async (req: Request) => {
           last_check_at: now.toISOString(),
           next_check_at: nextCheckAt(row.cadence_minutes, attempts, now),
           updated_at: now.toISOString(),
+          ...(lastRead ? { last_read: lastRead } : {}),
         })
         .eq("id", row.id);
+
+      results.push({ id: row.id, state: finalState, outcome: finalOutcome });
 
       if (finalState === "done" || finalState === "couldnt_finish" || finalState === "needs_you") {
         settled += 1;
@@ -359,7 +386,7 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    return jsonResponse({ ok: true, checked, settled, skipped });
+    return jsonResponse({ ok: true, checked, settled, skipped, results });
   } catch (e) {
     console.error("[watch-sweep]", e);
     return new Response(
