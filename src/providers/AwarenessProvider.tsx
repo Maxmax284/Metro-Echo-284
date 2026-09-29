@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { supabase } from "@/integrations/supabase/client";
 import { recordDeletion } from "@/lib/archive";
 import { useAuth } from "@/lib/auth";
+import { LIVE_FIX_SOURCES } from "@/lib/placeMove";
 
 export type AwarenessConfidence = "low" | "medium" | "high";
 export type AwarenessFreshness = "fresh" | "aging" | "stale" | "missing";
@@ -133,10 +134,12 @@ export function AwarenessProvider({ children }: { children: ReactNode }) {
       // "reading" places are kept to read about, never to stand in for your fix.
       .or("category.is.null,category.not.in.(care,nearby,reading)")
       .is("archived_at", null)
-      // Only a device fix can be "where you are". Saved places (Home, Work,
-      // a named reading) are rows too, and editing one bumps updated_at —
-      // without this, marking a place Home would teleport the whole app.
-      .filter("geo->>source", "eq", "device")
+      // Only a live fix can be "where you are": the device's GPS or your own
+      // hand (map picker, a search after a bad fix, a drag of the live pin).
+      // Saved places (Home, Work, a named reading) are rows too, and editing
+      // one bumps updated_at — without this, marking a place Home would
+      // teleport the whole app.
+      .filter("geo->>source", "in", `(${LIVE_FIX_SOURCES.map((s) => `"${s}"`).join(",")})`)
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();

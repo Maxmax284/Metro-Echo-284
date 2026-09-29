@@ -13,6 +13,21 @@
 /** Past this, the old names are about somewhere else. */
 export const MOVE_RESET_M = 2_000;
 
+/**
+ * Sources that are a deliberate "this is where I am" fix — the device's GPS
+ * or your own hand correcting it. A saved place (Home, Work, a named reading
+ * seeded through AddPlaceForm with source "manual") is never one of these:
+ * editing it bumps updated_at and must never teleport the app. The active
+ * place read (AwarenessProvider) accepts exactly this list.
+ */
+export const LIVE_FIX_SOURCES = [
+  "device",
+  "map_picker",
+  "manual_search",
+  "nearby_suggestion",
+  "manual_fix",
+] as const;
+
 export type Fix = { lat: number; lon: number; acc?: number | null; source?: string };
 
 const R = 6_371_000;

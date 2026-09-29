@@ -207,15 +207,12 @@ function IndexInner() {
         <BootSequence ready={!loading && !!user && introGate === "done"} />
       )}
       {loading ? (
-        plannedBoot === "skip" ? (
-          <div className="flex min-h-dvh items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          </div>
-        ) : (
-          /* The boot covers this beat; anything under it would be a second
-             screen fighting the first. */
-          <div className="min-h-dvh" aria-hidden />
-        )
+        /* The boot covers this beat while it stands — it is opaque, so the
+           spinner never fights it. Once the shutter lifts on a slow start,
+           this is what remains instead of a blank screen. */
+        <div className="flex min-h-dvh items-center justify-center">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </div>
       ) : !user ? (
         <Navigate to="/auth" replace />
       ) : (
