@@ -168,6 +168,32 @@ export async function reachPhone(admin: any, input: ReachInput): Promise<boolean
     /* Held or not push-worthy: the situation stays where the person finds it. */
     if (gate.channel !== "push") return false;
   }
+  /* The channel toggle is an opt-in every other sender already honours —
+     subscribing a device sets it, turning it off here holds the buzz with a
+     receipt instead of buzzing anyway. */
+  const { data: prof } = await admin
+    .from("profiles")
+    .select("preferences")
+    .eq("id", input.userId)
+    .maybeSingle();
+  const prefs = (prof?.preferences as Record<string, unknown>) ?? {};
+  if (prefs["push_reminders_enabled"] !== true) {
+    await admin.from("audit_log").insert({
+      user_id: input.userId,
+      organization_id: input.organizationId ?? null,
+      entity_type: input.entityType,
+      entity_id: input.entityId,
+      event: "nudge.held_by_settings",
+      payload: {
+        channel: "today",
+        held_reason: "push_off",
+        urgency: input.urgency,
+        because: "the push channel is switched off in your settings",
+        source: input.source,
+      },
+    });
+    return false;
+  }
   const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
   const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
   const vapidSubject = Deno.env.get("VAPID_SUBJECT") ?? "";
