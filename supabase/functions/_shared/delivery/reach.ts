@@ -15,13 +15,16 @@ import { attentionButtons, keyboard, openButton, type VantaLinkKind } from "../t
 import { planDelivery, pushPayload } from "./rail.ts";
 import {
   applyFloor,
+  applyQuietHours,
   categoryForSituation,
   levelForUrgency,
   pushUrgencyHeader,
   readFloors,
+  readQuietHours,
   type FloorDecision,
   type NotifyCategory,
 } from "../notifyPolicy.ts";
+import { isInQuietHours } from "../drift.ts";
 
 /**
  * The ladder gate. Every reach passes here before a device is touched:
