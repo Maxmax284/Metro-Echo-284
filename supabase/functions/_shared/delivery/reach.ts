@@ -71,9 +71,8 @@ export async function floorGate(
       event: "nudge.held_by_settings",
       payload: {
         channel: decision.channel,
-        held_reason: wasPush && decision.held && decision.because.includes("quiet hours")
-          ? "quiet_hours"
-          : "floor",
+        /* The floor said push and the window said wait — quiet hours did this. */
+        held_reason: wasPush && decision.channel !== "push" ? "quiet_hours" : "floor",
         level: decision.level,
         category: decision.category,
         urgency: args.urgency,
