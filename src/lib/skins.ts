@@ -1,4 +1,4 @@
-import { play } from "@/lib/streetSound";
+import { play, roomArrivalSound } from "@/lib/streetSound";
 import { applyDaylight } from "@/lib/daylight";
 import { localDay, readBootClaim, readLastBoot } from "@/lib/bootStorage";
 import { dawnShutterAllowed, SHUTTER_DAY_KEY } from "@/lib/ceremonyGate";
@@ -99,8 +99,9 @@ export function setRoom(room: string): void {
   root.setAttribute("data-room", room);
   /* Today's light follows the clock: position and colour, re-read on arrival. */
   applyDaylight();
-  // Turnstile click on a real room change; zippo when Ask opens. Opt-in only.
-  if (prev) play(room === "ask" ? "zippo" : "turnstile");
+  // Each room arrives on its own hardware: split-flap clack for the three
+  // main rooms, zippo when Ask opens, turnstile everywhere else. Opt-in only.
+  if (prev) play(roomArrivalSound(room));
   // Dawn shutter: the cheapest ceremony yields to every other — the ceremony
   // gate decides (a claimed boot day, an earlier lift, or pressure keeps it
   // down). Its niche is arrivals that skipped the roll call.

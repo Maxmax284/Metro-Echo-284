@@ -50,6 +50,8 @@ export function setSoundOn(on: boolean) {
   if (on) {
     unlockAudio();
     play("snap", { force: true });
+  } else {
+    stopHum();
   }
 }
 
@@ -206,4 +208,76 @@ function render(a: AudioContext, kind: StreetSound, gain = 1) {
       noiseBurst(a, t + 0.08, 0.12, 2200, 1.5, 0.14); // wheel strike
       break;
   }
+}
+
+/* ---- Station hum: a low, muffled loop under the main rooms ---- */
+
+/** The rooms the hum rides under. Ask stays quiet — it is a conversation. */
+export const HUM_ROOMS: ReadonlySet<string> = new Set(["today", "work", "receipts"]);
+
+/** The arrival sound each room earns when you pull into it. */
+export function roomArrivalSound(room: string): StreetSound {
+  if (room === "ask") return "zippo";
+  if (HUM_ROOMS.has(room)) return "solari";
+  return "turnstile";
+}
+
+type HumNodes = { src: AudioBufferSourceNode; gain: GainNode; lfo: OscillatorNode };
+let hum: HumNodes | null = null;
+
+/* Muffled and slow: brown noise through a heavy low-pass, swelling gently
+   like a train that never quite arrives. Synthesized — no file, no network. */
+export function startHum() {
+  if (!soundOn() || hum) return;
+  const a = audio();
+  if (!a || !master) return;
+  const len = a.sampleRate * 4;
+  const buf = a.createBuffer(1, len, a.sampleRate);
+  const d = buf.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < len; i++) {
+    const white = Math.random() * 2 - 1;
+    last = (last + 0.02 * white) / 1.02;
+    d[i] = last * 3.2;
+  }
+  const src = a.createBufferSource();
+  src.buffer = buf;
+  src.loop = true;
+  const filter = a.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 160;
+  filter.Q.value = 0.4;
+  const gain = a.createGain();
+  gain.gain.value = 0;
+  gain.gain.setTargetAtTime(0.045, a.currentTime, 1.4);
+  // A slow swell so the hum breathes instead of droning flat.
+  const lfo = a.createOscillator();
+  lfo.type = "sine";
+  lfo.frequency.value = 0.08;
+  const lfoGain = a.createGain();
+  lfoGain.gain.value = 0.018;
+  lfo.connect(lfoGain);
+  lfoGain.connect(gain.gain);
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(out(a));
+  src.start();
+  lfo.start();
+  hum = { src, gain, lfo };
+}
+
+export function stopHum() {
+  const h = hum;
+  hum = null;
+  if (!h) return;
+  const a = ctx;
+  try {
+    if (a) h.gain.gain.setTargetAtTime(0.0001, a.currentTime, 0.35);
+  } catch {
+    /* context gone — nothing to fade */
+  }
+  setTimeout(() => {
+    try { h.src.stop(); } catch { /* already stopped */ }
+    try { h.lfo.stop(); } catch { /* already stopped */ }
+  }, 1000);
 }

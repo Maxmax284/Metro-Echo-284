@@ -52,6 +52,8 @@ import { PlacesBoardMap } from "@/components/awareness/PlacesBoardMap";
 import { WelcomeStamp } from "@/components/awareness/WelcomeStamp";
 import { LocalHelpCard } from "@/components/awareness/LocalHelpCard";
 import { useStationMarks } from "@/hooks/useStationMarks";
+import { AwareAlertsRail } from "@/components/awareness/AwareAlertsRail";
+import { FIX_FAILURE_COPY, readLocationPermission, recordDeviceFix, requestFix } from "@/lib/locationSource";
 
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const AGING_MS = 7 * 24 * 60 * 60 * 1000;
@@ -80,9 +82,9 @@ function sentenceCase(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-export function AwarenessSurface() {
+export function AwarenessSurface({ onOpenWatches }: { onOpenWatches?: () => void }) {
   const { session } = useAuth();
-  const { place, briefings, overall, refresh, snapshot, snapshotLoading, refreshSnapshot, latestBySection, generate, generating, setActivePlace, deletePlace } = useAwareness();
+  const { place, briefings, overall, refresh, snapshot, snapshotLoading, refreshSnapshot, latestBySection, generate, generating, setActivePlace, deletePlace, loading: awarenessLoading } = useAwareness();
   const isMobile = useIsMobile();
   const { controls } = useSystemControls();
   /* Same read Today uses, so a meeting can't be quiet here and loud there. */
@@ -249,6 +251,48 @@ export function AwarenessSurface() {
   };
 
   useEffect(() => { if (session) loadList(); }, [session, place?.id]);
+
+  /* ---- Live-fix seeding: this room never sits empty for want of a place ----
+     The device already said yes to this site → take one fix and the room
+     reads live ground. "Ask once" → a card with a single tap (the tap is the
+     consent, and the browser prompt rides it). Held back → the honest copy
+     and a way to set the place by hand. One attempt per mount, never a loop. */
+  const [seedOffer, setSeedOffer] = useState<"prompt" | "blocked" | null>(null);
+  const [seeding, setSeeding] = useState(false);
+  const seedTriedRef = useRef(false);
+
+  const seedFromDevice = async () => {
+    if (!session?.user?.id || seeding) return;
+    setSeeding(true);
+    const res = await requestFix({ highAccuracy: false });
+    if (!res.ok) {
+      setSeeding(false);
+      if (res.failure === "denied" || res.failure === "unsupported") setSeedOffer("blocked");
+      else toast.error(FIX_FAILURE_COPY[res.failure]);
+      return;
+    }
+    try {
+      const rec = await recordDeviceFix({ userId: session.user.id, fix: res.fix, places: places as never });
+      await setActivePlace(rec.placeId);
+      await loadList();
+      setSeedOffer(null);
+      toast.success(`Echo has you at ${rec.label}.`);
+    } catch {
+      toast.error(vantaSay.couldntSave());
+    } finally {
+      setSeeding(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!session || awarenessLoading || place || seedTriedRef.current) return;
+    seedTriedRef.current = true;
+    void readLocationPermission().then((perm) => {
+      if (perm === "granted") void seedFromDevice();
+      else setSeedOffer(perm === "prompt" ? "prompt" : "blocked");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, awarenessLoading, place?.id]);
 
   /* Self-heal: a place with a fix but no name can't be spoken about, so Echo
      looks it up once. One attempt per place — never a loop, never silent
@@ -482,6 +526,38 @@ export function AwarenessSurface() {
       </div>
 
       <div className="scrollbar-thin flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-4 pb-36 md:pb-24 safe-bottom space-y-4">
+        {/* No place yet: the room's front door. One tap puts a live fix on the
+            map; "set it by hand" opens the place desk below. */}
+        {!place && seedOffer && (
+          <div className="vanta-card rounded-xl p-4 space-y-2">
+            <p className="text-[13px] font-medium text-foreground">Echo doesn't know where you are yet.</p>
+            <p className="text-[12px] leading-snug text-muted-foreground">
+              {seedOffer === "prompt"
+                ? "One tap and this room reads your live spot — the map, the weather, what's around you. A fix is only ever recorded when you give it."
+                : "Your browser is holding location back. Allow it for this site, or set the place by hand."}
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {seedOffer === "prompt" && (
+                <Button size="sm" className="h-9 gap-1.5 text-[12px]" onClick={() => void seedFromDevice()} disabled={seeding}>
+                  {seeding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Crosshair className="h-3.5 w-3.5" />}
+                  {seeding ? "Getting a fix…" : "Use my current location"}
+                </Button>
+              )}
+              <Button size="sm" variant="outline" className="h-9 gap-1.5 text-[12px]" onClick={() => setShowMore(true)}>
+                <MapPin className="h-3.5 w-3.5" /> Set it by hand
+              </Button>
+            </div>
+          </div>
+        )}
+        {!place && !seedOffer && seeding && (
+          <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin" /> Getting your live fix…
+          </p>
+        )}
+
+        {/* The world's open items — same queues Today reads. Quiet = nothing. */}
+        <AwareAlertsRail onOpenWatches={onOpenWatches} />
+
         {/* Place strip — sticky on mobile. Two clean lines. Extra chips in More. */}
         {place && (() => {
           const tier = classifyTier(place);
