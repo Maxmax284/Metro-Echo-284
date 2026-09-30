@@ -262,10 +262,11 @@ export function useAskTurn(opts?: {
       }
 
       /* A turn with no words of its own (a lookup, a capture, a watch) is
-         answered by the receipt the intent handler appends — a blank bubble
-         under it would be a lie of omission, so the placeholder goes. */
+         answered by the receipt the intent handler appends. Keep the
+         placeholder alive as a reading indicator — the answer lands below
+         it, never into a void. */
       if (!finalContent) {
-        write((prev) => prev.filter((_, idx) => idx !== aIdx));
+        write((prev) => prev.map((m, idx) => (idx === aIdx ? { ...m, content: READING_PULSE } : m)));
       }
 
       /* The question is ALWAYS kept. Only the assistant half needs words —
