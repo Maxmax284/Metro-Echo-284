@@ -67,9 +67,10 @@ export function SolariBoard({
           });
           setShown(cur.join(""));
           setFlipGen([...gens]);
-          // Sound tracks motion: a flurry while riffling, a clack as cells land.
-          if (landed > 0) play("clack");
-          else if (s === 1) play("solari");
+          // Sound tracks motion: a soft flutter while riffling, a flap as
+          // cells land. Kept low — boards should whisper, not rattle.
+          if (landed > 0) play("clack", { gain: 0.5 });
+          else if (s === 1) play("solari", { gain: 0.6 });
         }, s * STEP_MS),
       );
     }
