@@ -265,7 +265,7 @@ export function AwarenessSurface({ onOpenWatches }: { onOpenWatches?: () => void
     if (!session?.user?.id || seeding) return;
     setSeeding(true);
     const res = await requestFix({ highAccuracy: false });
-    if (!res.ok) {
+    if ("failure" in res) {
       setSeeding(false);
       if (res.failure === "denied" || res.failure === "unsupported") setSeedOffer("blocked");
       else toast.error(FIX_FAILURE_COPY[res.failure]);
