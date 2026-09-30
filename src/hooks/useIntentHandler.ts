@@ -604,6 +604,7 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
           const payload = (res ?? {}) as {
             ok?: boolean;
             answer?: string | null;
+            sitrep?: string | null;
             source?: string | null;
             behind_login?: boolean;
             host?: string | null;
@@ -617,6 +618,13 @@ export function useIntentHandler(onAck?: (ack: IntentAck) => void) {
             composed = [payload.answer ?? "Echo could not read that page.", payload.source ? `_${payload.source}_` : null]
               .filter(Boolean)
               .join("\n\n");
+          } else if (payload.sitrep) {
+            /* The sitrep is the ground truth — Echo read the reporting and
+               synthesized what actually matters. Sources ride in metadata. */
+            composed = [
+              payload.sitrep,
+              `\n_Echo read ${payload.hits?.length ?? 0} live source${(payload.hits?.length ?? 0) === 1 ? "" : "s"} just now._`,
+            ].join("");
           } else if (payload.hits?.length) {
             composed = [
               `Here is what the web says about “${asked}”. Echo only read it, nothing more.`,
