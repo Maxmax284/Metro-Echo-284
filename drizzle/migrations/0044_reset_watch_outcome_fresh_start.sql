@@ -1,0 +1,2 @@
+-- Clear the stale outcome and reset state so the next sweep writes real truth
+UPDATE public.watches SET outcome = NULL, state = 'on_it', attempts = 0, updated_at = now() WHERE id = '0583d597-2074-48c5-832c-696ac120dfcb';
