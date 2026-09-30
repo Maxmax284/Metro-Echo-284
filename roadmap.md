@@ -6,6 +6,11 @@
 - [x] Radar dispatch slip — tapping a watch row opens an in-place bottom sheet (state, rhythm, top headline, sweep log from receipts, Check now / Pause / Stop, "Dig deeper with Echo" escalation). No more leaving Today to read a watch.
 - [x] Sprint 3 — Thermal ticket Receipts: ledger is a perforated roll, rubber-ink stamps (FILED / APPROVED / WAITING / HELD BY QUIET HOURS / FAILED), conductor hole-punch on filed+approved, aged ink past 24h, tap snaps open the provenance drawer.
 
+## Aware room + station audio
+- [ ] Aware room: seed a live device fix (auto when permission granted, one-tap card otherwise) so the room never sits empty.
+- [ ] Aware room: "Open dispatches" rail — world nudges + needs_you watches, same queues Today reads.
+- [ ] Station audio: muffled hum loop under Today/Work/Receipts, Solari clack on room entry, speaker toggle in the top shell.
+
 ## Parked tracks
 - [ ] Telegram capture bridge — test on Maxwell first (Vanta sequencing), then Ground Truth Hub, then CampCore.
 - [ ] Documents roadmap — voice revise, multi-turn intake; parked items stay parked.
