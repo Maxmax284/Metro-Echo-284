@@ -48,7 +48,7 @@ describe("createTurnReducer", () => {
     expect(r.push({
       type: "response.output_item.added",
       output_index: 0,
-      item: { id: "fc_1", type: "function_call", name: "capture_note", arguments: "" },
+      item: { id: "fc_1", type: "function_call", name: "capture_note", arguments: "", call_id: "call_abc" },
     })).toEqual([]);
     expect(r.push({ type: "response.function_call_arguments.delta", item_id: "fc_1", delta: "{\"bo" })).toEqual([]);
     expect(r.push({ type: "response.function_call_arguments.delta", item_id: "fc_1", delta: "dy\":\"x\"}" })).toEqual([]);
@@ -58,13 +58,13 @@ describe("createTurnReducer", () => {
       item_id: "fc_1",
       arguments: "{\"body\":\"x\"}",
     });
-    expect(done).toEqual([{ kind: "tool", call: { name: "capture_note", arguments: "{\"body\":\"x\"}" } }]);
+    expect(done).toEqual([{ kind: "tool", call: { name: "capture_note", arguments: "{\"body\":\"x\"}", callId: "call_abc" } }]);
 
     /* output_item.done after arguments.done must not double-emit. */
     expect(r.push({
       type: "response.output_item.done",
       output_index: 0,
-      item: { id: "fc_1", type: "function_call", name: "capture_note", arguments: "{\"body\":\"x\"}" },
+      item: { id: "fc_1", type: "function_call", name: "capture_note", arguments: "{\"body\":\"x\"}", call_id: "call_abc" },
     })).toEqual([]);
   });
 
@@ -73,16 +73,28 @@ describe("createTurnReducer", () => {
     r.push({
       type: "response.output_item.added",
       output_index: 0,
-      item: { id: "fc_2", type: "function_call", name: "set_reminder", arguments: "" },
+      item: { id: "fc_2", type: "function_call", name: "set_reminder", arguments: "", call_id: "call_def" },
     });
     r.push({ type: "response.function_call_arguments.delta", item_id: "fc_2", delta: "{\"summary\":\"call Dani\"" });
     const out = r.push({
       type: "response.output_item.done",
       output_index: 0,
-      item: { id: "fc_2", type: "function_call", name: "set_reminder", arguments: "{\"summary\":\"call Dani\"}" },
+      item: { id: "fc_2", type: "function_call", name: "set_reminder", arguments: "{\"summary\":\"call Dani\"}", call_id: "call_def" },
     });
     expect(out).toEqual([
-      { kind: "tool", call: { name: "set_reminder", arguments: "{\"summary\":\"call Dani\"}" } },
+      { kind: "tool", call: { name: "set_reminder", arguments: "{\"summary\":\"call Dani\"}", callId: "call_def" } },
+    ]);
+  });
+
+  it("keeps the call_id even when output_item.added never arrived", () => {
+    const r = createTurnReducer();
+    const out = r.push({
+      type: "response.output_item.done",
+      output_index: 0,
+      item: { id: "fc_3", type: "function_call", name: "look_up", arguments: "{\"question\":\"flood\"}", call_id: "call_ghi" },
+    });
+    expect(out).toEqual([
+      { kind: "tool", call: { name: "look_up", arguments: "{\"question\":\"flood\"}", callId: "call_ghi" } },
     ]);
   });
 

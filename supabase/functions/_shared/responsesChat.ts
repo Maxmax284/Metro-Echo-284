@@ -44,13 +44,15 @@ export function toResponsesTools(chatTools: unknown[]): ResponsesTool[] {
   return out;
 }
 
-export type ToolCall = { name: string; arguments: string };
+/* callId is the Responses function_call id — needed when the server itself
+   answers the call and continues the turn with a function_call_output. */
+export type ToolCall = { name: string; arguments: string; callId?: string };
 
 export type TurnDelta =
   | { kind: "text"; delta: string }
   | { kind: "tool"; call: ToolCall };
 
-type PendingCall = { name: string; args: string; emitted: boolean };
+type PendingCall = { name: string; args: string; callId: string; emitted: boolean };
 
 /**
  * Pure event reducer. Feed parsed Responses SSE events; get text deltas and
@@ -71,7 +73,7 @@ export function createTurnReducer(): { push: (event: unknown) => TurnDelta[] } {
         arguments?: string;
         item_id?: string;
         output_index?: number;
-        item?: { id?: string; type?: string; name?: string; arguments?: string };
+        item?: { id?: string; type?: string; name?: string; arguments?: string; call_id?: string };
       };
       if (!e || typeof e.type !== "string") return [];
 
@@ -83,6 +85,7 @@ export function createTurnReducer(): { push: (event: unknown) => TurnDelta[] } {
         calls.set(keyOf(e), {
           name: String(e.item.name ?? ""),
           args: String(e.item.arguments ?? ""),
+          callId: String(e.item.call_id ?? ""),
           emitted: false,
         });
         return [];
@@ -99,7 +102,7 @@ export function createTurnReducer(): { push: (event: unknown) => TurnDelta[] } {
         const pending = calls.get(key);
         if (!pending || pending.emitted) return [];
         pending.emitted = true;
-        return [{ kind: "tool", call: { name: pending.name, arguments: String(e.arguments ?? pending.args) } }];
+        return [{ kind: "tool", call: { name: pending.name, arguments: String(e.arguments ?? pending.args), callId: pending.callId || undefined } }];
       }
 
       if (e.type === "response.output_item.done" && e.item?.type === "function_call") {
@@ -107,12 +110,13 @@ export function createTurnReducer(): { push: (event: unknown) => TurnDelta[] } {
         const pending = calls.get(key) ?? {
           name: String(e.item.name ?? ""),
           args: "",
+          callId: String(e.item.call_id ?? ""),
           emitted: false,
         };
         if (pending.emitted) return [];
         pending.emitted = true;
         calls.set(key, pending);
-        return [{ kind: "tool", call: { name: pending.name, arguments: String(e.item.arguments ?? pending.args) } }];
+        return [{ kind: "tool", call: { name: pending.name, arguments: String(e.item.arguments ?? pending.args), callId: pending.callId || undefined } }];
       }
 
       return [];

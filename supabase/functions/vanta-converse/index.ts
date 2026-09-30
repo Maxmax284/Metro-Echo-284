@@ -4,11 +4,13 @@ import { corsHeaders } from "../_shared/http.ts";
 // vanta-converse: streams a conversational response from Lovable AI Gateway,
 // loads recent conversation context, and emits intent events for the client to apply.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { COMPANION_VOICE, MEDIA_CAPABILITY } from "../_shared/vantaVoice.ts";
+import { COMPANION_VOICE, MEDIA_CAPABILITY, RESEARCH_VOICE } from "../_shared/vantaVoice.ts";
 import { brandVoiceDirective, readBrandVoice } from "../_shared/brandVoice.ts";
 import { bodyForDevice, depthDirective } from "../_shared/responseDepth.ts";
 import { ROUTING_RULES, VOICE_RULES, STRUCTURE_RULES } from "../_shared/routingRules.ts";
 import { createTurnReducer, iterResponsesEvents, postResponsesTurn } from "../_shared/responsesChat.ts";
+import { serpSearch } from "../_shared/serpSearch.ts";
+import { sitrepFrom } from "../_shared/sitrep.ts";
 import { buildWorkingContext, workingContextBlock } from "../_shared/workingContext.ts";
 import { calendarContextBlock, type CalReadEvent } from "../_shared/calendarRead.ts";
 import { abilitiesBlock, echoAbilities, matchAbilityQuestion } from "../_shared/echoAbilities.ts";
@@ -497,7 +499,12 @@ const tools = [
       description: "A public fact that is not in their own calendar, mail or files and has no page to point at: 'what's the number for the pharmacy on King Street', 'is that clinic open Saturday', 'compare current prices', 'what's going on with the flooding in Bangkok', 'latest on the typhoon'. Public web lookup, read only — use it for anything current or changing instead of answering from memory. Always prefer their own connected sources first.",
       parameters: {
         type: "object",
-        properties: { question: { type: "string", description: "What to look up, in plain words." } },
+        properties: {
+          question: {
+            type: "string",
+            description: "Short search-engine keywords only — 'Koh Samui weather now', 'Bangkok flooding latest'. Never a sentence, never instructions, never a question mark: Google reads keywords, and a long sentence poisons the results.",
+          },
+        },
         required: ["question"],
         additionalProperties: false,
       },
@@ -795,6 +802,29 @@ Deno.serve(async (req: Request) => {
             "- If the reply asks for something to happen, prepare it for approval and say nothing has run.",
           ].filter(Boolean).join("\n");
         }
+      } else if (thread?.context_kind === "watch" && thread.context_id) {
+        /* A thread opened from the radar stands on that watch's record. Echo
+           answers from the recorded reads — timestamped ground truth — and
+           only looks further when the person asks for fresher than that. */
+        const { data: watch } = await supabase
+          .from("watches")
+          .select("goal, state, last_read, last_check_at, next_check_at")
+          .eq("id", thread.context_id)
+          .maybeSingle();
+        if (watch) {
+          headsUpBlock = [
+            "This thread is about a live watch Echo is running. Its recorded reads are ground truth with timestamps — answer from them first, never from memory of the topic:",
+            `- watching: ${watch.goal}`,
+            `- state: ${watch.state}`,
+            watch.last_read
+              ? `- latest read (${watch.last_check_at ?? "time unknown"}): ${String(watch.last_read).slice(0, 600)}`
+              : "- no reads recorded yet — say the first sweep has not landed rather than guessing",
+            watch.next_check_at ? `- next check due: ${watch.next_check_at}` : "",
+            "- When the person wants fresher than the latest read, run look_up for a live check and say the watch itself keeps its own rhythm.",
+          ].filter(Boolean).join("\n");
+        } else if (thread.context_label) {
+          headsUpBlock = `This thread is about a watch: ${thread.context_label}. Answer against that record.`;
+        }
       } else if (thread?.context_kind && thread.context_label) {
         headsUpBlock = `This thread is about ${thread.context_kind}: ${thread.context_label}. Answer against that record.`;
       }
@@ -905,15 +935,25 @@ Deno.serve(async (req: Request) => {
        and the radar/search pipeline — division of labour, hardcoded. The
        Responses stream is translated back into the chat-completions SSE shape
        the room already reads, so the client contract never moves. */
+    /* Any read the pre-pass now owns is withheld from the answering model,
+       so the browser can never be asked to paste a second answer beside
+       the one being streamed. And when this turn's research already put
+       fresh sources in the prompt, look_up goes too — re-searching what is
+       sitting in front of the model is a second bill for the same answer. */
+    const researchHasSources = researchBlock.startsWith("External sources");
+    const answerTools = tools.filter((t: any) => {
+      const n = String(t?.function?.name ?? "");
+      if (isEchoRead(n)) return false;
+      if (researchHasSources && n === "look_up") return false;
+      return true;
+    });
     const upstream = await postResponsesTurn({
       apiKey: LOVABLE_API_KEY,
       messages,
-      /* Any read the pre-pass now owns is withheld from the answering model,
-         so the browser can never be asked to paste a second answer beside
-         the one being streamed. Write and staging tools are untouched. */
-      tools: tools.filter((t: any) => !isEchoRead(String(t?.function?.name ?? ""))),
+      tools: answerTools,
       effort: "low",
     });
+    const runId = upstream.headers.get("X-Lovable-AIG-Run-ID") ?? undefined;
 
     if (upstream.status === 429 || upstream.status === 402 || upstream.status === 403) {
       return new Response(
@@ -941,24 +981,85 @@ Deno.serve(async (req: Request) => {
            English, so "Why this?" names real lookups instead of guessing. */
         if (reads.length) send({ reads: readProvenance(reads) });
 
-        const reducer = createTurnReducer();
+        /* A live question used to bounce back to the browser for a second
+           round trip — and on a slow connection the answer never landed,
+           leaving the room on an endless "Processing". look_up now runs
+           here, mid-turn: the search + sitrep go back to the same model as
+           a tool result and the answer streams on in the same breath. */
+        const MAX_INLINE_LOOKUPS = 2;
+        let inlineLookups = 0;
+        let input: unknown[] = messages;
+        let current: Response | null = upstream;
+
+        const runInlineLookup = async (args: Record<string, unknown>): Promise<string> => {
+          const question = String(args.question ?? "").trim();
+          if (!question) return "No question was provided to look up. Ask the person what to check.";
+          const SERPAPI_KEY = Deno.env.get("SERPAPI_KEY");
+          if (!SERPAPI_KEY) return "Web search is not configured here. Say you could not check the web right now.";
+          try {
+            const hits = await serpSearch(question.slice(0, 240), SERPAPI_KEY);
+            console.error("inline lookup", JSON.stringify({ q: question.slice(0, 120), hits: hits.length }));
+            if (!hits.length) return "The web search came back with nothing usable. Say plainly you could not verify it outside right now.";
+            const sitrep = await sitrepFrom(question, hits, LOVABLE_API_KEY, RESEARCH_VOICE);
+            return [
+              sitrep ? `Sitrep from those sources: ${sitrep}` : "",
+              `Sources read just now (${new Date().toISOString()}):`,
+              ...hits.slice(0, 4).map((h, i) => `[${i + 1}] ${h.title} — ${h.url}\n${h.snippet}`),
+              "Answer the person from these. Name the sources you used and when you read them. Never invent beyond them.",
+            ].filter(Boolean).join("\n");
+          } catch (e) {
+            return `The web lookup failed (${e instanceof Error ? e.message : "unknown"}). Say the lookup did not come back and answer from what you have.`;
+          }
+        };
+
         try {
-          for await (const event of iterResponsesEvents(upstream.body!)) {
-            for (const d of reducer.push(event)) {
-              if (d.kind === "text") {
-                // Chat-completions-shaped text chunk — the room's reader contract.
-                send({ choices: [{ index: 0, delta: { content: d.delta } }] });
-              } else {
-                let args: Record<string, unknown> = {};
-                try { args = d.call.arguments ? JSON.parse(d.call.arguments) : {}; } catch { /* partial */ }
-                send({
-                  intent: {
-                    name: d.call.name,
-                    args,
-                    grounding: { sources: groundedSources, asked_at: new Date().toISOString() },
-                  },
-                });
+          while (current) {
+            const reducer = createTurnReducer();
+            const inline: { name: string; arguments: string; callId: string; args: Record<string, unknown> }[] = [];
+            for await (const event of iterResponsesEvents(current.body!)) {
+              for (const d of reducer.push(event)) {
+                if (d.kind === "text") {
+                  // Chat-completions-shaped text chunk — the room's reader contract.
+                  send({ choices: [{ index: 0, delta: { content: d.delta } }] });
+                } else {
+                  let args: Record<string, unknown> = {};
+                  try { args = d.call.arguments ? JSON.parse(d.call.arguments) : {}; } catch { /* partial */ }
+                  if (d.call.name === "look_up" && d.call.callId && inlineLookups + inline.length < MAX_INLINE_LOOKUPS) {
+                    inline.push({ name: d.call.name, arguments: d.call.arguments, callId: d.call.callId, args });
+                    continue;
+                  }
+                  send({
+                    intent: {
+                      name: d.call.name,
+                      args,
+                      grounding: { sources: groundedSources, asked_at: new Date().toISOString() },
+                    },
+                  });
+                }
               }
+            }
+            if (!inline.length) break;
+            inlineLookups += inline.length;
+            for (const call of inline) {
+              const output = await runInlineLookup(call.args);
+              input = [
+                ...input,
+                { type: "function_call", call_id: call.callId, name: call.name, arguments: call.arguments },
+                { type: "function_call_output", call_id: call.callId, output },
+              ];
+            }
+            current = await postResponsesTurn({
+              apiKey: LOVABLE_API_KEY,
+              messages: input as any,
+              tools: answerTools,
+              effort: "low",
+              runId,
+            }).catch(() => null);
+            if (!current || !current.ok || !current.body) {
+              /* The follow-up turn dropped: say so in Echo's own voice
+                 rather than leaving the person on a spinner. */
+              send({ choices: [{ index: 0, delta: { content: "The lookup came back but the words dropped on the way. Ask again and I'll take another run at it." } }] });
+              break;
             }
           }
         } catch (e) {
