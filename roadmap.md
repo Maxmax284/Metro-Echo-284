@@ -19,6 +19,12 @@
 - [x] Zombie watch cleanup — old failed Bangkok watch purged, stale outcome/last_read cleared for fresh start.
 - [x] AI verdicts in the background sweep — shared `_shared/sitrep.ts` brain (web-look + watch-sweep); fingerprint stays the cheap pre-filter, AI reads only on change or first read; verdict rides `last_read` + nudge title, citations stripped on the board, fails soft to the raw headline; opening sitrep written at watch creation.
 
+## Echo talks like it knows something (dual-brain depth pass)
+- [x] Gag rules out — routingRules/vantaVoice drop the 2-sentence/6-bullet caps; completeness-first.
+- [x] Depth budgets lifted — desk 14 / phone 8 / telegram 8 sentences as ceilings, "never drop a fact that changes the decision to stay short".
+- [x] Shared Responses client `_shared/responsesChat.ts` — gpt-6-astra conversational brain for the Echo room + Telegram; Gemini keeps radar/search + the read pre-pass.
+- [x] Suite green, both functions deployed, live-checked at 384px.
+
 ## Parked tracks
 - [ ] Telegram capture bridge — test on Maxwell first (Vanta sequencing), then Ground Truth Hub, then CampCore.
 - [ ] Documents roadmap — voice revise, multi-turn intake; parked items stay parked.
