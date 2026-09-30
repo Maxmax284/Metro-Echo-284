@@ -33,6 +33,17 @@ describe("responseDepth", () => {
     expect(d).toMatch(/Didn't run/);
   });
 
+  it("gives phone and telegram room for a week without passing the desk", () => {
+    expect(BODY_DEPTH.phone.sentences[1]).toBe(12);
+    expect(BODY_DEPTH.telegram.sentences[1]).toBe(12);
+    for (const body of ["phone", "telegram"] as const) {
+      const d = depthDirective(body);
+      expect(d).toMatch(/WHEN THEY ASK FOR THE WEEK/);
+      expect(d).toMatch(/one line per day/);
+      expect(d).toMatch(/up to seven/);
+    }
+  });
+
   it("never lets a smaller body carry more than a larger one", () => {
     expect(BODY_DEPTH.wrist.sentences[1]).toBeLessThanOrEqual(BODY_DEPTH.telegram.sentences[1]);
     expect(BODY_DEPTH.telegram.sentences[1]).toBeLessThanOrEqual(BODY_DEPTH.phone.sentences[1]);

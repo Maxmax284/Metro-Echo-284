@@ -32,6 +32,22 @@ describe("reading the calendar", () => {
     expect(parseCalendarQuestion("what's on right now").kind).toBe("now");
   });
 
+  it("hears a week as a week, never as today", () => {
+    expect(parseCalendarQuestion("what does my week look like").kind).toBe("week");
+    expect(parseCalendarQuestion("this week").kind).toBe("week");
+    const nextWeek = parseCalendarQuestion("anything next week");
+    expect(nextWeek.kind).toBe("week");
+    expect(nextWeek.weekOffset).toBe(1);
+  });
+
+  it("reads the week day by day, names the clear days, lists a stay once", () => {
+    const answer = answerCalendarQuestion(parseCalendarQuestion("what does my week look like"), events, { now, tz });
+    expect(answer.text).toContain("ADHD appointment");
+    expect(answer.text).toContain("Flight to Tokyo");
+    expect(answer.text.match(/Wingate stay/g)).toHaveLength(1);
+    expect(answer.text).toContain("of the 7 days are clear");
+  });
+
   it("counts a multi-day stay on every day it spans", () => {
     const titles = eventsOnDay(events, 0, now, tz).map((e) => e.title);
     expect(titles).toContain("Wingate stay");

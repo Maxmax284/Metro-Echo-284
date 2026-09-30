@@ -44,16 +44,16 @@ export const BODY_DEPTH: Record<VantaBody, DepthSpec> = {
   },
   phone: {
     label: "Phone",
-    sentences: [1, 8],
+    sentences: [1, 12],
     lists: true,
     sources: "one",
     link: true,
     next: true,
-    character: "The whole situation in pocket form. Verdict, the facts that change it, the next step — nothing decision-changing left out.",
+    character: "The whole situation in pocket form. Verdict, the facts that change it, the next step — nothing decision-changing left out. A week gets a line per day that carries something, never a wall.",
   },
   telegram: {
     label: "Telegram",
-    sentences: [1, 8],
+    sentences: [1, 12],
     lists: true,
     sources: "one",
     link: true,
@@ -113,6 +113,15 @@ Say less by stopping earlier in that list, never by shuffling it. If the answer 
 "nothing", say that and stop: silence is a valid output. If something is uncertain,
 the uncertainty belongs in step 1, not buried at the end.`;
 
+/** How a weekly lookahead is shaped, whatever the body. */
+export const WEEK_READ = `WHEN THEY ASK FOR THE WEEK (or a stretch of days): lead with the shape of it
+in one line ("quiet until Thursday, then it stacks up"). Then one line per day
+that carries something — a meeting, a deadline, travel, a collision — naming just
+the thing that matters and any pressure on it. Skip empty days entirely; open
+space gets named in the lead, not itemized. Close with the single thing worth
+their attention, and only when something is genuinely waiting on them. The ceiling
+is a ceiling: a light week answers in three lines and stops.`;
+
 /** The failure shape, identical on every surface. */
 export const FAILURE_SHAPE = `WHEN SOMETHING FAILS: say "Didn't run." then the reason in a person's words,
 then "Nothing else changed." Then the one thing they can do — try again, or fix the thing first.
@@ -127,7 +136,7 @@ export function depthDirective(body: VantaBody): string {
       ? `Length: one sentence.`
       : `Budget: up to ${d.sentences[1]} sentences — a ceiling, never a target. Say everything the answer needs; when two sentences cover it, stop at two. Never drop a fact that changes the decision to stay short.`,
     d.lists
-      ? `Short lists are fine for two or three items. Never headings, never markdown tables.`
+      ? `Short lists are fine for two or three items; a week gets one line per day that carries something, up to seven. Never headings, never markdown tables.`
       : `No lists, no markdown. One line of prose.`,
     d.sources === "named"
       ? `Name every source you read it off, with how fresh it is.`
@@ -139,7 +148,7 @@ export function depthDirective(body: VantaBody): string {
     `Short does not mean flat: the brevity is the accent, not the absence of one.`,
     `Compression drops detail, never meaning, and never the uncertainty.`,
   ];
-  return `RESPONSE DEPTH (this reply is being read on a ${d.label.toLowerCase()}):\n${lines.join("\n")}\n\n${ANSWER_ORDER}\n\n${FAILURE_SHAPE}`;
+  return `RESPONSE DEPTH (this reply is being read on a ${d.label.toLowerCase()}):\n${lines.join("\n")}\n\n${ANSWER_ORDER}\n\n${WEEK_READ}\n\n${FAILURE_SHAPE}`;
 }
 
 /** Split prose into sentences without mangling decimals or abbreviations. */

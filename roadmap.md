@@ -25,6 +25,12 @@
 - [x] Shared Responses client `_shared/responsesChat.ts` — gpt-6-astra conversational brain for the Echo room + Telegram; Gemini keeps radar/search + the read pre-pass.
 - [x] Suite green, both functions deployed, live-checked at 384px.
 
+## Week-length answers (depth tune)
+- [x] Phone + Telegram budgets 8 → 12 sentences; WEEK_READ shape (lead with the shape of the week, one line per day that carries something, clear days named not itemized, ceiling stays a ceiling).
+- [x] In-app week question un-silenced — query_schedule tool retired from the answering model (chips still use the client intent); calendar context now holds the next 8 days, not the next 8 rows.
+- [x] Telegram "this week" actually reads a week — new deterministic week read in calendarRead (7 days, stay listed once, clear days counted, cap 12 lines).
+- [x] Live-checked: week question answers in prose, names the limit when the calendar is empty; 26/26 depth+calendar tests green; both functions redeployed.
+
 ## Parked tracks
 - [ ] Telegram capture bridge — test on Maxwell first (Vanta sequencing), then Ground Truth Hub, then CampCore.
 - [ ] Documents roadmap — voice revise, multi-turn intake; parked items stay parked.
