@@ -22,6 +22,7 @@ import {
 import { fetchPage } from "../_shared/webFetch.ts";
 import { checkPage, checkSearch } from "../_shared/webLook.ts";
 import { serpSearch } from "../_shared/serpSearch.ts";
+import { firstLine, sitrepFrom } from "../_shared/sitrep.ts";
 
 Deno.serve(async (req: Request) => {
   const pre = preflight(req);
@@ -245,29 +246,41 @@ Deno.serve(async (req: Request) => {
       } else if (row.kind === "web_search") {
         /* A topic watch re-asks the same question and compares the set of
            pages answering it. The same pages in a new order is ranking jitter,
-           not news; new pages showing up is. */
+           not news. When the set moves — or the board has no read yet — Echo
+           actually reads the reporting and speaks the verdict; the fingerprint
+           stays the cheap pre-filter so quiet checks cost no AI call. */
         const query = String(row.success_when?.query ?? "");
         if (!query) {
           result = { state: "couldnt_finish", outcome: "That watch has no question on it." };
         } else {
           try {
             const hits = await serpSearch(query, Deno.env.get("SERPAPI_KEY") ?? "");
-            lastRead = hits[0]?.title ? hits[0].title.slice(0, 140) : null;
             const checked = checkSearch(
               { fingerprint: (row.success_when?.fingerprint as string | null) ?? null },
               query,
               hits,
             );
+            /* A failed synthesis never blocks the check: fall back to the raw
+               headline, and never overwrite a good verdict with a worse one. */
+            const needsVoice = checked.changed || !row.last_read;
+            const verdict = needsVoice
+              ? await sitrepFrom(query, hits, Deno.env.get("LOVABLE_API_KEY") ?? "")
+              : "";
+            if (verdict) lastRead = verdict.slice(0, 400);
+            else if (!row.last_read && hits[0]?.title) lastRead = hits[0].title.slice(0, 140);
             if (checked.changed) {
-              result = { state: "needs_you", outcome: checked.outcome };
+              const headline = verdict ? firstLine(verdict) : checked.outcome;
+              result = { state: "needs_you", outcome: headline };
               /* Same rail as a page change: Today already reads nudges, one
                  row, deduped per watch per day. */
               const { error: nudgeError } = await admin.from("nudges").upsert({
                 user_id: row.user_id,
                 organization_id: row.organization_id ?? null,
                 kind: "web_page_changed",
-                title: checked.outcome,
-                body: `${row.goal}. Echo read public results, nothing else. Ask Echo what is new to see what moved.`,
+                title: headline,
+                body: verdict
+                  ? `${verdict} Open the radar for the sources.`
+                  : `${row.goal}. Echo read public results, nothing else. Ask Echo what is new to see what moved.`,
                 priority: 65,
                 related_entity_type: "watch",
                 related_entity_id: row.id,
