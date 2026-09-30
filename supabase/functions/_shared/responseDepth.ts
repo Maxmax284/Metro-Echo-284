@@ -44,16 +44,16 @@ export const BODY_DEPTH: Record<VantaBody, DepthSpec> = {
   },
   phone: {
     label: "Phone",
-    sentences: [1, 8],
+    sentences: [1, 12],
     lists: true,
     sources: "one",
     link: true,
     next: true,
-    character: "The whole situation in pocket form. Verdict, the facts that change it, the next step — nothing decision-changing left out.",
+    character: "The whole situation in pocket form. Verdict, the facts that change it, the next step — nothing decision-changing left out. A week gets a line per day that carries something, never a wall.",
   },
   telegram: {
     label: "Telegram",
-    sentences: [1, 8],
+    sentences: [1, 12],
     lists: true,
     sources: "one",
     link: true,
@@ -112,6 +112,15 @@ export const ANSWER_ORDER = `ANSWER ORDER (every body, every channel):
 Say less by stopping earlier in that list, never by shuffling it. If the answer is
 "nothing", say that and stop: silence is a valid output. If something is uncertain,
 the uncertainty belongs in step 1, not buried at the end.`;
+
+/** How a weekly lookahead is shaped, whatever the body. */
+export const WEEK_READ = `WHEN THEY ASK FOR THE WEEK (or a stretch of days): lead with the shape of it
+in one line ("quiet until Thursday, then it stacks up"). Then one line per day
+that carries something — a meeting, a deadline, travel, a collision — naming just
+the thing that matters and any pressure on it. Skip empty days entirely; open
+space gets named in the lead, not itemized. Close with the single thing worth
+their attention, and only when something is genuinely waiting on them. The ceiling
+is a ceiling: a light week answers in three lines and stops.`;
 
 /** The failure shape, identical on every surface. */
 export const FAILURE_SHAPE = `WHEN SOMETHING FAILS: say "Didn't run." then the reason in a person's words,
