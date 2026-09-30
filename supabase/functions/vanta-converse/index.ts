@@ -382,22 +382,6 @@ const tools = [
   {
     type: "function",
     function: {
-      name: "query_schedule",
-      description: "Look up the user's schedule: today's commitments and reminders, what's overdue, what's next. All times returned in the user's timezone.",
-      parameters: {
-        type: "object",
-        properties: {
-          window: { type: "string", enum: ["today", "tomorrow", "week", "overdue", "next"], description: "Which slice of the schedule to summarize." },
-          question: { type: "string", description: "The user's original question, for context." },
-        },
-        required: ["window"],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
       name: "travel_time",
       description:
         "How long it takes to drive to something on the person's calendar, and when they should leave: 'how long to drive to my ADHD appointment', 'how far is the meeting tomorrow', 'when should I leave for the clinic'. Uses the place Echo is currently using and the address recorded on the entry. Never estimates: if there is no address or no road route, it says so.",
@@ -773,8 +757,10 @@ Deno.serve(async (req: Request) => {
         location: r.location ?? null,
         all_day: r.all_day ?? null,
       }));
+      /* Hold the whole coming week, not just the next eight rows — a week read
+         needs all of it in context or the model fills the gap with fog. */
       calendarBlock = [
-        calendarContextBlock(calEvents, { tz }),
+        calendarContextBlock(calEvents, { tz, days: 8 }),
         CALENDAR_CHANGE_DIRECTIVE,
       ].filter(Boolean).join("\n\n");
     } catch (e) { console.error("ask calendar context", e); }
