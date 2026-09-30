@@ -11,6 +11,13 @@
 - [x] Aware room: "Open dispatches" rail — world nudges + needs_you watches, same queues Today reads.
 - [x] Station audio: muffled hum loop under Today/Work/Receipts, Solari clack on room entry, speaker toggle in the top shell.
 
+## Radar intelligence overhaul (post-screenshot audit)
+- [x] Junk domain blacklist — social/video/app-store/forum hosts stripped at the source in serpSearch.
+- [x] Real AI sitrep synthesis — web-look search mode feeds filtered hits to Gemini for a 2–3 sentence ground-truth sitrep; no more raw bulleted link dumps.
+- [x] Echo dead-air killed — reading pulse stays alive until the intent handler's answer lands; no more blank bubble wipe.
+- [x] Tactical radar scope — SVG concentric rings, rotating phosphor sweep, deterministic blip per watch (amber=attention, cyan=steady), reduced-motion safe.
+- [x] Zombie watch cleanup — old failed Bangkok watch purged, stale outcome/last_read cleared for fresh start.
+
 ## Parked tracks
 - [ ] Telegram capture bridge — test on Maxwell first (Vanta sequencing), then Ground Truth Hub, then CampCore.
 - [ ] Documents roadmap — voice revise, multi-turn intake; parked items stay parked.
