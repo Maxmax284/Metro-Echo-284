@@ -35,30 +35,30 @@ export type DepthSpec = {
 export const BODY_DEPTH: Record<VantaBody, DepthSpec> = {
   desk: {
     label: "Desk",
-    sentences: [1, 8],
+    sentences: [1, 14],
     lists: true,
     sources: "named",
     link: true,
     next: true,
-    character: "Full answer, then what it's read off, then the next step.",
+    character: "The full read. Everything that changes the decision, what it's read off, then the next step.",
   },
   phone: {
     label: "Phone",
-    sentences: [1, 4],
+    sentences: [1, 8],
     lists: true,
     sources: "one",
     link: true,
     next: true,
-    character: "A short operational brief. Verdict, the facts that change it, the next step.",
+    character: "The whole situation in pocket form. Verdict, the facts that change it, the next step — nothing decision-changing left out.",
   },
   telegram: {
     label: "Telegram",
-    sentences: [1, 3],
+    sentences: [1, 8],
     lists: true,
     sources: "one",
     link: true,
     next: true,
-    character: "Street-short and direct. Plain prose, no markdown, no headings.",
+    character: "Street-plain and direct. Plain prose, no markdown, no headings. Complete beats compact when there is real substance.",
   },
   wrist: {
     label: "Watch",
@@ -123,7 +123,9 @@ export function depthDirective(body: VantaBody): string {
   const d = BODY_DEPTH[body];
   const lines = [
     `${d.label} body: ${d.character}`,
-    `Length: ${d.sentences[0]}–${d.sentences[1]} ${d.sentences[1] === 1 ? "sentence" : "sentences"}.`,
+    d.sentences[1] === 1
+      ? `Length: one sentence.`
+      : `Budget: up to ${d.sentences[1]} sentences — a ceiling, never a target. Say everything the answer needs; when two sentences cover it, stop at two. Never drop a fact that changes the decision to stay short.`,
     d.lists
       ? `Short lists are fine for two or three items. Never headings, never markdown tables.`
       : `No lists, no markdown. One line of prose.`,
