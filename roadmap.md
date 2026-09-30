@@ -38,6 +38,13 @@
 - [x] Stamp copy plain — "Your ground since Sep 26. Echo answers from here."
 - [x] awareness-query answers stay prose — no invented conditions without briefings, briefing field-labels stripped server-side. Live-checked on Maxwell's account: Ko Samui anchor, honest low confidence.
 
+## Stuck-Processing autopsy (Echo lookup freeze)
+- [x] Server-side inline lookup — look_up no longer bounces to the browser for a second round trip; vanta-converse runs SerpApi + sitrep mid-turn, feeds it back as a tool result, and the answer streams in the same breath (cap 2 inline lookups, run id carried across the continuation).
+- [x] Watch-aware threads — a thread bound to a watch loads the watch's recorded reads (goal, state, last_read, last/next check) into the prompt; Echo answers from timestamped ground truth first and only re-checks live when asked.
+- [x] Keyword-query discipline — look_up's tool contract now demands short search-engine keywords; the essay-length query that poisoned Google results is gone.
+- [x] Client placeholder fail-safe — useAskTurn awaits intent jobs; the pulse lifts when the handler's answer lands below, and a turn that returns nothing says so plainly ("The lookup didn't come back…" / "Still working on that…") instead of spinning forever.
+- [x] Live-verified at 384px: page-check flow answers with provenance, no stuck pulse; watch thread answers from the record; Koh Samui lookup streams a sourced sitrep. Suite 2,362 green (+2 known Telegram date quirks); vanta-converse deployed.
+
 ## Parked tracks
 - [ ] Telegram capture bridge — test on Maxwell first (Vanta sequencing), then Ground Truth Hub, then CampCore.
 - [ ] Documents roadmap — voice revise, multi-turn intake; parked items stay parked.
