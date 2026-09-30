@@ -197,6 +197,9 @@ export function RadarCard() {
         </div>
       ) : (
         <>
+          {/* The tactical scope — rings, sweep, one blip per watch. */}
+          <RadarScope model={model} checkingId={checkingId} />
+
           {/* The bulletin's status line is a real departure board: when the
               answer changes, the flaps riffle and land on the new truth.
               Unchanged words hold still — the clack is an event, not a loop. */}
