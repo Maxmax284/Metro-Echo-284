@@ -158,7 +158,12 @@ Deno.serve(async (req: Request) => {
           answer: "Web lookups are switched off right now, so Echo did not go looking.",
         });
       }
-      return jsonResponse({ ok: true, hits: res.data, source: "web search" });
+      const hits = (res.data ?? []) as Hit[];
+      const sitrep = await sitrepFrom(q, hits);
+      const answer = sitrep
+        ? `${sitrep}\n\n_Echo read ${hits.length} source${hits.length === 1 ? "" : "s"} just now._`
+        : null;
+      return jsonResponse({ ok: true, hits, sitrep, answer, source: "web search" });
     }
 
     /* ----------------------------------------------------- watch a topic */
