@@ -55,7 +55,7 @@ export async function sitrepFrom(
           {
             role: "system",
             content:
-              `${RESEARCH_VOICE}\n\nYou are reading a handful of fresh web search results about a live situation. ` +
+              `${voice}\n\nYou are reading a handful of fresh web search results about a live situation. ` +
               `Write a 2–3 sentence situational sitrep: what is actually happening right now, what moved, what the person should know. ` +
               `Conclusion first. Never invent facts not in the sources. Never say "according to" — speak it as ground truth. ` +
               `If the sources are thin or contradictory, say exactly that.`,

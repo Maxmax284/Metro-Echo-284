@@ -23,6 +23,7 @@ import { fetchPage } from "../_shared/webFetch.ts";
 import { checkPage, checkSearch } from "../_shared/webLook.ts";
 import { serpSearch } from "../_shared/serpSearch.ts";
 import { firstLine, sitrepFrom } from "../_shared/sitrep.ts";
+import { RESEARCH_VOICE } from "../_shared/vantaVoice.ts";
 
 Deno.serve(async (req: Request) => {
   const pre = preflight(req);
@@ -264,7 +265,7 @@ Deno.serve(async (req: Request) => {
                headline, and never overwrite a good verdict with a worse one. */
             const needsVoice = checked.changed || !row.last_read;
             const verdict = needsVoice
-              ? await sitrepFrom(query, hits, Deno.env.get("LOVABLE_API_KEY") ?? "")
+              ? await sitrepFrom(query, hits, Deno.env.get("LOVABLE_API_KEY") ?? "", RESEARCH_VOICE)
               : "";
             if (verdict) lastRead = verdict.slice(0, 400);
             else if (!row.last_read && hits[0]?.title) lastRead = hits[0].title.slice(0, 140);
