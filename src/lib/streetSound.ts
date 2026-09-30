@@ -183,7 +183,7 @@ function render(a: AudioContext, kind: StreetSound, gain = 1) {
       noiseBurst(a, t, 0.06, 1400, 2, 0.2);
       break;
     case "tick":
-      noiseBurst(a, t, 0.03, 4000, 4, 0.16);
+      noiseBurst(a, t, 0.03, 2600, 4, 0.1);
       break;
     case "spray":
       noiseBurst(a, t, 0.03, 3200, 3, 0.26); // agitator ball
