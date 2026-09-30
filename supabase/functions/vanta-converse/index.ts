@@ -499,7 +499,12 @@ const tools = [
       description: "A public fact that is not in their own calendar, mail or files and has no page to point at: 'what's the number for the pharmacy on King Street', 'is that clinic open Saturday', 'compare current prices', 'what's going on with the flooding in Bangkok', 'latest on the typhoon'. Public web lookup, read only — use it for anything current or changing instead of answering from memory. Always prefer their own connected sources first.",
       parameters: {
         type: "object",
-        properties: { question: { type: "string", description: "What to look up, in plain words." } },
+        properties: {
+          question: {
+            type: "string",
+            description: "Short search-engine keywords only — 'Koh Samui weather now', 'Bangkok flooding latest'. Never a sentence, never instructions, never a question mark: Google reads keywords, and a long sentence poisons the results.",
+          },
+        },
         required: ["question"],
         additionalProperties: false,
       },
