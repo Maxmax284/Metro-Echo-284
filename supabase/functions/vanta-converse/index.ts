@@ -993,6 +993,7 @@ Deno.serve(async (req: Request) => {
           if (!SERPAPI_KEY) return "Web search is not configured here. Say you could not check the web right now.";
           try {
             const hits = await serpSearch(question.slice(0, 240), SERPAPI_KEY);
+            console.error("inline lookup", JSON.stringify({ q: question.slice(0, 120), hits: hits.length }));
             if (!hits.length) return "The web search came back with nothing usable. Say plainly you could not verify it outside right now.";
             const sitrep = await sitrepFrom(question, hits, LOVABLE_API_KEY, RESEARCH_VOICE);
             return [
