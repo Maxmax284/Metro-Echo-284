@@ -37,7 +37,7 @@ export function stampWord(at: string | Date, now: Date = new Date()): string | n
 /** What a stamp may say about itself, everywhere it appears. */
 export const STAMP_COPY = {
   action: "Stamp this place",
-  why: "Mark this ground as yours. The stamp shows here and echoes when the app opens on it.",
+  why: "Mark this as your ground. Echo answers from here until you lift it or a real move does.",
   confirm: "Press the stamp?",
   press: "Press it",
   cancel: "Not yet",

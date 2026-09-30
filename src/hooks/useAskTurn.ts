@@ -129,7 +129,7 @@ export function useAskTurn(opts?: {
     let assistantSoFar = "";
     /* Live lookups read in silence for a moment — an honest pulse, never an
        approval card. The instant real words arrive the pulse is gone. */
-    const READING_PULSE = "_Checking live sources…_";
+    const READING_PULSE = "_Processing…_";
     const staged: { name: string; args?: Record<string, unknown> }[] = [];
     /* Plain-English provenance for the reads the server ran this turn. */
     const readLines: string[] = [];
@@ -224,7 +224,7 @@ export function useAskTurn(opts?: {
                     pulseShown = true;
                     write((prev) => prev.map((m, idx) => (idx === aIdx ? { ...m, content: READING_PULSE } : m)));
                   }
-                }, 1200);
+                }, 400);
               }
               void internalIntent(p.intent.name, p.intent.args, {
                 surface: "ask",

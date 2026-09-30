@@ -31,6 +31,13 @@
 - [x] Telegram "this week" actually reads a week — new deterministic week read in calendarRead (7 days, stay listed once, clear days counted, cap 12 lines).
 - [x] Live-checked: week question answers in prose, names the limit when the calendar is empty; 26/26 depth+calendar tests green; both functions redeployed.
 
+## Live-place truth (Fairfax autopsy)
+- [x] awareness-query anchored to the live fix — same LIVE_FIX_SOURCES list the app reads; a named/saved row can never teleport answers again.
+- [x] Stamped ground outranks a newer unstamped fix — the stamp means "Echo answers from here", and a real move still lifts it.
+- [x] Spinner copy honest and fast — "Processing…" replaces "Checking live sources…", pulse shows at 400ms not 1200ms; ProcessingLine/processingLabel match.
+- [x] Stamp copy plain — "Your ground since Sep 26. Echo answers from here."
+- [x] awareness-query answers stay prose — no invented conditions without briefings, briefing field-labels stripped server-side. Live-checked on Maxwell's account: Ko Samui anchor, honest low confidence.
+
 ## Parked tracks
 - [ ] Telegram capture bridge — test on Maxwell first (Vanta sequencing), then Ground Truth Hub, then CampCore.
 - [ ] Documents roadmap — voice revise, multi-turn intake; parked items stay parked.

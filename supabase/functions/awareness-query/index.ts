@@ -17,7 +17,8 @@ const Body = z.object({
 const SYS = `${AWARENESS_VOICE}
 
 You are answering one short, practical place-based question. Cite specifics from the provided place context where relevant.
-If you do not actually know, say so plainly. Never invent specific addresses, prices, or times.
+If no recent briefings are provided, you have no live read on current local conditions — say so plainly and stick to general knowledge, labelled as general. Never invent current conditions, weather, addresses, prices, or times.
+Answer in plain prose only — no field labels, no YAML, no "summary:" lines.
 Hard cap: 140 words. Final line must be: confidence: low|medium|high`;
 
 Deno.serve(async (req: Request) => {
@@ -43,10 +44,18 @@ Deno.serve(async (req: Request) => {
     if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten() }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const { question, section } = parsed.data;
 
-    // Pull the user's most recent place + last few briefings as grounding
+    // Pull the user's live place + last few briefings as grounding.
+    // Mirror of LIVE_FIX_SOURCES in src/lib/placeMove.ts — the exact list the
+    // app's own active-place read accepts. A named/saved place is never the
+    // live ground: editing one bumps updated_at, and ordering by that alone
+    // teleported every answer to a place the user had left.
+    // A stamped row outranks a newer unstamped fix — the stamp is the user's
+    // deliberate "this is my ground", and a real move lifts it (placeMove).
     const { data: place } = await supabase
       .from("awareness_places")
-      .select("id,label,country,region,geo")
+      .select("id,label,country,region,geo,stamped_at")
+      .filter("geo->>source", "in", '("device","map_picker","manual_search","nearby_suggestion","manual_fix")')
+      .order("stamped_at", { ascending: false, nullsFirst: false })
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -93,7 +102,14 @@ Deno.serve(async (req: Request) => {
     const j = await r.json();
     const raw = String(j.choices?.[0]?.message?.content ?? "").trim();
     const conf = (raw.match(/confidence:\s*(low|medium|high)/i)?.[1] ?? "medium").toLowerCase();
-    const answer = raw.replace(/confidence:\s*(low|medium|high)\s*$/i, "").trim();
+    /* Field-label lines ("why_it_matters:", "short_summary:") are briefing
+       schema, not prose — the model leaks them under pressure. Cut them. */
+    const answer = raw
+      .replace(/confidence:\s*(low|medium|high)\s*$/i, "")
+      .split("\n")
+      .filter((l) => !/^\s*(long_detail|short_summary|why_it_matters|what_to_do_next)\s*:/i.test(l))
+      .join("\n")
+      .trim();
 
     const sources = (briefings ?? []).map((b: any) => ({
       kind: "briefing", section: b.section, generated_at: b.generated_at,
