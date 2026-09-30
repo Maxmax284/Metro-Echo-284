@@ -156,9 +156,9 @@ function tone(a: AudioContext, t: number, from: number, to: number, dur: number,
 export function play(kind: StreetSound, { force = false, gain = 1 }: { force?: boolean; gain?: number } = {}) {
   if (!force && !soundOn()) return;
   const now = performance.now();
-  // Rate limit: a burst of flaps is one clatter, not a machine gun.
+  // Rate limit: a riffle is a soft flutter, not a burst of clicks.
   if (kind === "clack") {
-    if (now - lastClackAt < 28) return;
+    if (now - lastClackAt < 70) return;
     lastClackAt = now;
   }
   const a = audio();
@@ -179,8 +179,8 @@ function render(a: AudioContext, kind: StreetSound, gain = 1) {
   switch (kind) {
     case "solari":
     case "clack":
-      noiseBurst(a, t, 0.045, 2400, 3, 0.32);
-      tone(a, t, 900, 500, 0.02, 0.06);
+      // Soft flap: low and dull, no high-end click.
+      noiseBurst(a, t, 0.06, 1400, 2, 0.2);
       break;
     case "tick":
       noiseBurst(a, t, 0.03, 4000, 4, 0.16);
