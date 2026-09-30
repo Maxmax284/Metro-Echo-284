@@ -17,6 +17,7 @@
 - [x] Echo dead-air killed — reading pulse stays alive until the intent handler's answer lands; no more blank bubble wipe.
 - [x] Tactical radar scope — SVG concentric rings, rotating phosphor sweep, deterministic blip per watch (amber=attention, cyan=steady), reduced-motion safe.
 - [x] Zombie watch cleanup — old failed Bangkok watch purged, stale outcome/last_read cleared for fresh start.
+- [x] AI verdicts in the background sweep — shared `_shared/sitrep.ts` brain (web-look + watch-sweep); fingerprint stays the cheap pre-filter, AI reads only on change or first read; verdict rides `last_read` + nudge title, citations stripped on the board, fails soft to the raw headline; opening sitrep written at watch creation.
 
 ## Parked tracks
 - [ ] Telegram capture bridge — test on Maxwell first (Vanta sequencing), then Ground Truth Hub, then CampCore.
