@@ -136,7 +136,7 @@ export function depthDirective(body: VantaBody): string {
       ? `Length: one sentence.`
       : `Budget: up to ${d.sentences[1]} sentences — a ceiling, never a target. Say everything the answer needs; when two sentences cover it, stop at two. Never drop a fact that changes the decision to stay short.`,
     d.lists
-      ? `Short lists are fine for two or three items. Never headings, never markdown tables.`
+      ? `Short lists are fine for two or three items; a week gets one line per day that carries something, up to seven. Never headings, never markdown tables.`
       : `No lists, no markdown. One line of prose.`,
     d.sources === "named"
       ? `Name every source you read it off, with how fresh it is.`
@@ -148,7 +148,7 @@ export function depthDirective(body: VantaBody): string {
     `Short does not mean flat: the brevity is the accent, not the absence of one.`,
     `Compression drops detail, never meaning, and never the uncertainty.`,
   ];
-  return `RESPONSE DEPTH (this reply is being read on a ${d.label.toLowerCase()}):\n${lines.join("\n")}\n\n${ANSWER_ORDER}\n\n${FAILURE_SHAPE}`;
+  return `RESPONSE DEPTH (this reply is being read on a ${d.label.toLowerCase()}):\n${lines.join("\n")}\n\n${ANSWER_ORDER}\n\n${WEEK_READ}\n\n${FAILURE_SHAPE}`;
 }
 
 /** Split prose into sentences without mangling decimals or abbreviations. */
