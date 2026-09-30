@@ -323,6 +323,13 @@
       "when": 1790738476350,
       "tag": "0045_reactivate_bangkok_watch_for_verdict_check",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1790738494230,
+      "tag": "0046_clear_stale_headline_for_first_verdict",
+      "breakpoints": true
     }
   ]
 }
