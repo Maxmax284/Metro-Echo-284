@@ -76,7 +76,7 @@ export function WelcomeStamp({
           Stamped {word ?? ""}
         </span>
         <p className="min-w-0 flex-1 text-[11px] leading-snug text-muted-foreground">
-          {spoken ? `On file since ${spoken}. Echoes at boot while this is where you are.` : STAMP_COPY.why}
+          {spoken ? `Your ground since ${spoken}. Echo answers from here.` : STAMP_COPY.why}
         </p>
         <Button
           variant="ghost"

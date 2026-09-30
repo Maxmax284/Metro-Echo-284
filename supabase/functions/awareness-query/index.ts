@@ -43,10 +43,18 @@ Deno.serve(async (req: Request) => {
     if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten() }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const { question, section } = parsed.data;
 
-    // Pull the user's most recent place + last few briefings as grounding
+    // Pull the user's live place + last few briefings as grounding.
+    // Mirror of LIVE_FIX_SOURCES in src/lib/placeMove.ts — the exact list the
+    // app's own active-place read accepts. A named/saved place is never the
+    // live ground: editing one bumps updated_at, and ordering by that alone
+    // teleported every answer to a place the user had left.
+    // A stamped row outranks a newer unstamped fix — the stamp is the user's
+    // deliberate "this is my ground", and a real move lifts it (placeMove).
     const { data: place } = await supabase
       .from("awareness_places")
-      .select("id,label,country,region,geo")
+      .select("id,label,country,region,geo,stamped_at")
+      .filter("geo->>source", "in", '("device","map_picker","manual_search","nearby_suggestion","manual_fix")')
+      .order("stamped_at", { ascending: false, nullsFirst: false })
       .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle();

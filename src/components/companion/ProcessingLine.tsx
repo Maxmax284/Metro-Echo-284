@@ -20,7 +20,7 @@ export function ProcessingLine({
   label?: string;
   className?: string;
 }) {
-  const label = labelOverride ?? (phase === "reading" ? "Checking your context" : "Writing");
+  const label = labelOverride ?? (phase === "reading" ? "Processing" : "Writing");
   return (
     <span className={cn("inline-flex flex-col gap-1.5", className)}>
       <span className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground" aria-live="polite">

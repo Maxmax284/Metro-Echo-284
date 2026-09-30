@@ -273,5 +273,5 @@ export function processingLabel(
   if (kinds.has("image")) return "Looking at the image";
   if (kinds.has("audio")) return "Listening to the recording";
   if (kinds.size > 0) return "Looking at what you sent";
-  return "Checking your context";
+  return "Processing";
 }

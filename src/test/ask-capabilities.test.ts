@@ -89,7 +89,7 @@ describe("processingLabel", () => {
   });
 
   it("falls back to context when nothing is attached", () => {
-    expect(processingLabel("reading")).toBe("Checking your context");
+    expect(processingLabel("reading")).toBe("Processing");
   });
 
   it("says writing once tokens arrive", () => {
