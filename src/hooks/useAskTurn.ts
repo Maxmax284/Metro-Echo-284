@@ -131,6 +131,9 @@ export function useAskTurn(opts?: {
        approval card. The instant real words arrive the pulse is gone. */
     const READING_PULSE = "_Processing…_";
     const staged: { name: string; args?: Record<string, unknown> }[] = [];
+    /* Intent jobs run beside the stream — the turn waits for them at the
+       end so a handler's answer never lands after the placeholder settles. */
+    const intentJobs: Promise<unknown>[] = [];
     /* Plain-English provenance for the reads the server ran this turn. */
     const readLines: string[] = [];
     let hints: AttachmentHint[] = [];
@@ -226,7 +229,7 @@ export function useAskTurn(opts?: {
                   }
                 }, 400);
               }
-              void internalIntent(p.intent.name, p.intent.args, {
+              intentJobs.push(internalIntent(p.intent.name, p.intent.args, {
                 surface: "ask",
                 conversation_id: threadId,
                 asked_at: new Date().toISOString(),
@@ -240,7 +243,7 @@ export function useAskTurn(opts?: {
                   : hints.length
                     ? { sources: hints.map((h) => ({ name: h.name, file_id: h.ingested_file_id ?? null })) }
                     : {}),
-              });
+              }).catch(() => {}));
             }
           } catch { /* partial */ }
         }
@@ -254,7 +257,7 @@ export function useAskTurn(opts?: {
       const stagedLine = staged.length
         ? staged.map((s) => stagedApprovalLine(s.name, s.args)).filter(Boolean).join("\n")
         : "";
-      const finalContent = aborted && assistantSoFar
+      let finalContent = aborted && assistantSoFar
         ? `${assistantSoFar}\n\n_Stopped._`
         : (assistantSoFar || stagedLine);
       if (aborted || (!assistantSoFar && stagedLine)) {
@@ -262,11 +265,27 @@ export function useAskTurn(opts?: {
       }
 
       /* A turn with no words of its own (a lookup, a capture, a watch) is
-         answered by the receipt the intent handler appends. Keep the
-         placeholder alive as a reading indicator — the answer lands below
-         it, never into a void. */
+         answered by the intent handler. Wait for it, then settle the
+         placeholder honestly: the handler's answer landed below (lift the
+         pulse — its job is done) or nothing came back at all (say so; a
+         pulse that never resolves reads as a stuck Echo). */
       if (!finalContent) {
-        write((prev) => prev.map((m, idx) => (idx === aIdx ? { ...m, content: READING_PULSE } : m)));
+        let settled = true;
+        if (intentJobs.length) {
+          settled = await Promise.race<boolean>([
+            Promise.allSettled(intentJobs).then(() => true),
+            new Promise<boolean>((res) => setTimeout(() => res(false), 30000)),
+          ]);
+        }
+        const sessMsgs = getAskSession(threadId).messages as AskMsg[];
+        if (sessMsgs.length > aIdx + 1) {
+          write((prev) => prev.filter((_, idx) => idx !== aIdx));
+        } else {
+          finalContent = settled
+            ? "_The lookup didn't come back. Ask again and I'll take another run at it._"
+            : "_Still working on that — the answer drops in here when it lands._";
+          write((prev) => prev.map((m, idx) => (idx === aIdx ? { ...m, content: finalContent } : m)));
+        }
       }
 
       /* The question is ALWAYS kept. Only the assistant half needs words —
