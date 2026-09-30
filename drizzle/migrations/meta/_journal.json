@@ -316,6 +316,13 @@
       "when": 1790736953649,
       "tag": "0044_reset_watch_outcome_fresh_start",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1790738476350,
+      "tag": "0045_reactivate_bangkok_watch_for_verdict_check",
+      "breakpoints": true
     }
   ]
 }
