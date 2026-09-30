@@ -27,6 +27,7 @@ import {
   type PageRead,
 } from "../_shared/webLook.ts";
 import { serpSearch } from "../_shared/serpSearch.ts";
+import { sitrepFrom } from "../_shared/sitrep.ts";
 
 const Body = z.object({
   mode: z.enum(["read", "search", "watch"]).default("read"),
@@ -69,47 +70,6 @@ async function answerFrom(question: string, read: PageRead): Promise<string> {
 }
 
 type Hit = { title: string; url: string; snippet: string };
-
-/**
- * Synthesize a real sitrep from the filtered search hits — the AI reads the
- * reporting and speaks a 2–3 sentence ground truth, conclusion first.
- * Falls back to the raw hits if the gateway is unreachable.
- */
-async function sitrepFrom(question: string, hits: Hit[]): Promise<string> {
-  if (!LOVABLE_API_KEY || hits.length === 0) return "";
-  const sourceLines = hits
-    .slice(0, 4)
-    .map((h, i) => `Source ${i + 1} — ${h.title} (${new URL(h.url).hostname.replace(/^www\./, "")})\n${h.snippet}`)
-    .join("\n\n");
-  try {
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content:
-              `${RESEARCH_VOICE}\n\nYou are reading a handful of fresh web search results about a live situation. ` +
-              `Write a 2–3 sentence situational sitrep: what is actually happening right now, what moved, what the person should know. ` +
-              `Conclusion first. Never invent facts not in the sources. Never say "according to" — speak it as ground truth. ` +
-              `If the sources are thin or contradictory, say exactly that.`,
-          },
-          {
-            role: "user",
-            content: `Question: ${question}\n\nFresh search results:\n${sourceLines}`,
-          },
-        ],
-      }),
-    });
-    if (!r.ok) return "";
-    const j = await r.json();
-    return String(j?.choices?.[0]?.message?.content ?? "").trim();
-  } catch {
-    return "";
-  }
-}
 
 Deno.serve(async (req: Request) => {
   const pre = preflight(req);
@@ -159,7 +119,7 @@ Deno.serve(async (req: Request) => {
         });
       }
       const hits = (res.data ?? []) as Hit[];
-      const sitrep = await sitrepFrom(q, hits);
+      const sitrep = await sitrepFrom(q, hits, LOVABLE_API_KEY, RESEARCH_VOICE);
       const answer = sitrep
         ? `${sitrep}\n\n_Echo read ${hits.length} source${hits.length === 1 ? "" : "s"} just now._`
         : null;
@@ -213,6 +173,9 @@ Deno.serve(async (req: Request) => {
       }
 
       const cadence = cadence_minutes ?? 360;
+      /* The board shows ground truth from minute one: the same sitrep brain
+         that answered the question writes the watch's first read. */
+      const openingSitrep = await sitrepFrom(q, res.data, LOVABLE_API_KEY, RESEARCH_VOICE);
       const { data: row, error } = await db
         .from("watches")
         .insert({
@@ -225,6 +188,7 @@ Deno.serve(async (req: Request) => {
           cadence_minutes: cadence,
           next_check_at: new Date(Date.now() + cadence * 60_000).toISOString(),
           stop_at: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+          ...(openingSitrep ? { last_read: openingSitrep.slice(0, 400) } : {}),
           success_when: {
             query: q,
             fingerprint: searchFingerprint(res.data),

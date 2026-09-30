@@ -1,0 +1,1 @@
+update watches set last_read = null, updated_at = now() where id = '0583d597-2074-48c5-832c-696ac120dfcb';

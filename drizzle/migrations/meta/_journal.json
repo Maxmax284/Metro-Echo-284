@@ -316,6 +316,27 @@
       "when": 1790736953649,
       "tag": "0044_reset_watch_outcome_fresh_start",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1790738476350,
+      "tag": "0045_reactivate_bangkok_watch_for_verdict_check",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1790738494230,
+      "tag": "0046_clear_stale_headline_for_first_verdict",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1790738525865,
+      "tag": "0047_strip_citations_from_board_verdict",
+      "breakpoints": true
     }
   ]
 }

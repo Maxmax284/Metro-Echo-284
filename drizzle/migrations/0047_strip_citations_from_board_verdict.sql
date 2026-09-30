@@ -1,0 +1,1 @@
+update watches set last_read = trim(regexp_replace(last_read, '\s*\[[\d,\s]+\]', '', 'g')), updated_at = now() where id = '0583d597-2074-48c5-832c-696ac120dfcb' and last_read is not null;
