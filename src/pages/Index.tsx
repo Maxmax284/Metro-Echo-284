@@ -63,6 +63,8 @@ import type { BootMode } from "@/lib/bootSequence";
 import { claimBootDay } from "@/lib/bootStorage";
 import { useEffect } from "react";
 import { useRoomSignals } from "@/hooks/useRoomSignals";
+import { useStationHum } from "@/hooks/useStationHum";
+import { SoundToggle } from "@/components/shell/SoundToggle";
 
 export default function Index() {
   return <IndexInner />;
@@ -132,6 +134,8 @@ function IndexInner() {
   const { state } = useOperationalState(surface);
   /* Calm / drift / pressure now holds in all four rooms, not only Today. */
   useShellWeather();
+  /* The station hum rides the main rooms and stands down everywhere else. */
+  useStationHum(surface);
   const { openSherlock } = useSherlock();
   const stageAction = useStageAction();
   const { setContext } = useCurrentContext();
@@ -320,6 +324,8 @@ function IndexInner() {
             </Sheet>
             <WorkspaceSwitcher />
             <ModeBadge />
+            {/* The street-sound switch: silence is always one tap away. */}
+            <SoundToggle />
             {/* Secondary doors stand down on a phone: at 384px seven controls
                 clipped the cluster off the right edge. Every one of them is
                 reachable from the Settings sheet or the room rail instead. */}
@@ -396,7 +402,7 @@ function IndexInner() {
             {surface === "commitments" && <CommitmentsSurface focusId={focusCommitmentId} onFocusHandled={() => setFocusCommitmentId(null)} />}
             {surface === "actions" && <ActionsSurface focusId={focusActionId} onFocusHandled={() => setFocusActionId(null)} />}
             {surface === "sherlock" && <SherlockSurface />}
-            {surface === "awareness" && <AwarenessSurface />}
+            {surface === "awareness" && <AwarenessSurface onOpenWatches={() => setSurface("today")} />}
           </SurfaceCrossfade>
         </main>
       </div>
