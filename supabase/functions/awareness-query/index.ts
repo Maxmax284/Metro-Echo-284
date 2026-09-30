@@ -102,7 +102,14 @@ Deno.serve(async (req: Request) => {
     const j = await r.json();
     const raw = String(j.choices?.[0]?.message?.content ?? "").trim();
     const conf = (raw.match(/confidence:\s*(low|medium|high)/i)?.[1] ?? "medium").toLowerCase();
-    const answer = raw.replace(/confidence:\s*(low|medium|high)\s*$/i, "").trim();
+    /* Field-label lines ("why_it_matters:", "short_summary:") are briefing
+       schema, not prose — the model leaks them under pressure. Cut them. */
+    const answer = raw
+      .replace(/confidence:\s*(low|medium|high)\s*$/i, "")
+      .split("\n")
+      .filter((l) => !/^\s*(long_detail|short_summary|why_it_matters|what_to_do_next)\s*:/i.test(l))
+      .join("\n")
+      .trim();
 
     const sources = (briefings ?? []).map((b: any) => ({
       kind: "briefing", section: b.section, generated_at: b.generated_at,
