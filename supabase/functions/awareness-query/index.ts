@@ -17,7 +17,8 @@ const Body = z.object({
 const SYS = `${AWARENESS_VOICE}
 
 You are answering one short, practical place-based question. Cite specifics from the provided place context where relevant.
-If you do not actually know, say so plainly. Never invent specific addresses, prices, or times.
+If no recent briefings are provided, you have no live read on current local conditions — say so plainly and stick to general knowledge, labelled as general. Never invent current conditions, weather, addresses, prices, or times.
+Answer in plain prose only — no field labels, no YAML, no "summary:" lines.
 Hard cap: 140 words. Final line must be: confidence: low|medium|high`;
 
 Deno.serve(async (req: Request) => {
