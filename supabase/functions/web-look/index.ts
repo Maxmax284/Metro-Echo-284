@@ -119,7 +119,7 @@ Deno.serve(async (req: Request) => {
         });
       }
       const hits = (res.data ?? []) as Hit[];
-      const sitrep = await sitrepFrom(q, hits);
+      const sitrep = await sitrepFrom(q, hits, LOVABLE_API_KEY);
       const answer = sitrep
         ? `${sitrep}\n\n_Echo read ${hits.length} source${hits.length === 1 ? "" : "s"} just now._`
         : null;
@@ -173,6 +173,9 @@ Deno.serve(async (req: Request) => {
       }
 
       const cadence = cadence_minutes ?? 360;
+      /* The board shows ground truth from minute one: the same sitrep brain
+         that answered the question writes the watch's first read. */
+      const openingSitrep = await sitrepFrom(q, res.data, LOVABLE_API_KEY);
       const { data: row, error } = await db
         .from("watches")
         .insert({
@@ -185,6 +188,7 @@ Deno.serve(async (req: Request) => {
           cadence_minutes: cadence,
           next_check_at: new Date(Date.now() + cadence * 60_000).toISOString(),
           stop_at: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+          ...(openingSitrep ? { last_read: openingSitrep.slice(0, 400) } : {}),
           success_when: {
             query: q,
             fingerprint: searchFingerprint(res.data),
