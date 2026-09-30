@@ -302,6 +302,13 @@
       "when": 1790668559650,
       "tag": "0042_watches_last_read",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1790736785113,
+      "tag": "0043_cleanup_zombie_watches",
+      "breakpoints": true
     }
   ]
 }
