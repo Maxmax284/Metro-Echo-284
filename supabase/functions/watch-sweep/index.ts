@@ -22,7 +22,7 @@ import {
 import { fetchPage } from "../_shared/webFetch.ts";
 import { checkPage, checkSearch } from "../_shared/webLook.ts";
 import { serpSearch } from "../_shared/serpSearch.ts";
-import { firstLine, sitrepFrom } from "../_shared/sitrep.ts";
+import { firstLine, sitrepFrom, stripCitations } from "../_shared/sitrep.ts";
 import { RESEARCH_VOICE } from "../_shared/vantaVoice.ts";
 
 Deno.serve(async (req: Request) => {
@@ -264,9 +264,12 @@ Deno.serve(async (req: Request) => {
             /* A failed synthesis never blocks the check: fall back to the raw
                headline, and never overwrite a good verdict with a worse one. */
             const needsVoice = checked.changed || !row.last_read;
-            const verdict = needsVoice
+            const rawVerdict = needsVoice
               ? await sitrepFrom(query, hits, Deno.env.get("LOVABLE_API_KEY") ?? "", RESEARCH_VOICE)
               : "";
+            /* The board shows sources on the slip, so citation brackets are
+               noise here — the chat answer keeps them, the radar drops them. */
+            const verdict = stripCitations(rawVerdict);
             if (verdict) lastRead = verdict.slice(0, 400);
             else if (!row.last_read && hits[0]?.title) lastRead = hits[0].title.slice(0, 140);
             if (checked.changed) {

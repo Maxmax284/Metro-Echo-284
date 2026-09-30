@@ -1,7 +1,7 @@
 // The sitrep brain: pure helpers pinned, and the synthesis itself proven to
 // fail soft — a gateway outage must never block or fail a watch check.
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { firstLine, sitrepFrom, sitrepSourceLines } from "../../supabase/functions/_shared/sitrep";
+import { firstLine, sitrepFrom, sitrepSourceLines, stripCitations } from "../../supabase/functions/_shared/sitrep";
 
 const HITS = [
   { title: "RID holds Chao Phraya at Bang Sai", url: "https://www.bangkokpost.com/news/1", snippet: "Flow steady." },
@@ -39,6 +39,17 @@ describe("firstLine", () => {
     expect(firstLine("one\ntwo\nthree")).toBe("one two three");
     const long = ` ${"x".repeat(200)}`;
     expect(firstLine(long).length).toBeLessThanOrEqual(140);
+  });
+});
+
+describe("stripCitations", () => {
+  it("drops bracketed source numbers, keeps the words", () => {
+    expect(stripCitations("Heavy rain floods Bangkok [1, 2, 3]. Pumps run [4]."))
+      .toBe("Heavy rain floods Bangkok. Pumps run.");
+  });
+
+  it("leaves uncited text and real brackets alone", () => {
+    expect(stripCitations("No movement on that.")).toBe("No movement on that.");
   });
 });
 

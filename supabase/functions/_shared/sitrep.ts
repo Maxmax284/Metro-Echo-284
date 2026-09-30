@@ -25,6 +25,11 @@ export function sitrepSourceLines(hits: SitrepHit[], max = 4): string {
     .join("\n\n");
 }
 
+/** Drop "[1, 2]"-style citation markers — right in chat, noise on the board. */
+export function stripCitations(text: string): string {
+  return text.replace(/\s*\[[\d,\s]+\]/g, "").replace(/\s{2,}/g, " ").trim();
+}
+
 /** First sentence of a verdict — the nudge title / radar headline form. */
 export function firstLine(text: string, max = 140): string {
   const flat = text.replace(/\s+/g, " ").trim();
