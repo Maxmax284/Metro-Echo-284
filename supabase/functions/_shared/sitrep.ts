@@ -2,8 +2,8 @@
 // (question time) and watch-sweep (every check). SerpApi is the eyes; this is
 // the voice that says what the reporting actually means. A failed synthesis
 // never blocks a check: callers fall back to the raw headline.
-import { RESEARCH_VOICE } from "./vantaVoice.ts";
-
+// Pure module — the voice arrives as a parameter so tests can import this
+// without dragging the whole prompt stack in.
 export type SitrepHit = { title: string; url: string; snippet: string };
 
 const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -42,6 +42,7 @@ export async function sitrepFrom(
   question: string,
   hits: SitrepHit[],
   apiKey: string,
+  voice: string,
 ): Promise<string> {
   if (!apiKey || hits.length === 0) return "";
   try {
