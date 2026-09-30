@@ -33,12 +33,14 @@ export function dedupeEvents(events: CalReadEvent[]): CalReadEvent[] {
   });
 }
 
-export type CalendarReadKind = "now" | "day" | "conflicts" | "after";
+export type CalendarReadKind = "now" | "day" | "conflicts" | "after" | "week";
 
 export type CalendarQuery = {
   kind: CalendarReadKind;
   /** Days from today. 0 = today, 1 = tomorrow. */
   dayOffset: number;
+  /** Week reads only: 0 = the 7 days from today, 1 = the week after. */
+  weekOffset?: number;
   /** The user's own words for an event, when they asked about one. */
   reference: string | null;
 };
@@ -69,7 +71,11 @@ export function parseCalendarQuestion(phrase: string, opts?: { now?: Date }): Ca
     return { kind: "after", dayOffset: 0, reference: phrase };
   }
   if (/\btomorrow\b/.test(p)) return { kind: "day", dayOffset: 1, reference };
-  if (/\b(rest of the week|this week|next few days)\b/.test(p)) return { kind: "day", dayOffset: 0, reference };
+  if (/\bnext week\b/.test(p)) return { kind: "week", dayOffset: 0, weekOffset: 1, reference };
+  /* A week is a week — never collapse it into today. */
+  if (/\b(rest of the week|this week|my week|week ahead|coming week|next few days|coming days|next 7 days|week look)\b/.test(p)) {
+    return { kind: "week", dayOffset: 0, weekOffset: 0, reference };
+  }
   for (let i = 0; i < WEEKDAYS.length; i++) {
     if (new RegExp(`\\b${WEEKDAYS[i]}\\b`).test(p)) {
       const delta = (i - now.getUTCDay() + 7) % 7 || 7;
@@ -241,6 +247,45 @@ export function answerCalendarQuestion(
     return { text: "Which event should I look past?", deep: false };
   }
 
+  /* The week read: one line per event across the days that carry something.
+     Empty days are counted, not itemized — open space gets named in the tail,
+     the same shape the depth rules ask the model for. A multi-day stay shows
+     once, on its first day in the window, not on every day it spans. */
+  if (query.kind === "week") {
+    const startOffset = (query.weekOffset ?? 0) * 7;
+    const span = 7;
+    const seen = new Set<string>();
+    const lines: string[] = [];
+    let daysWithEvents = 0;
+    for (let o = startOffset; o < startOffset + span; o++) {
+      const day = eventsOnDay(events, o, nowIso, tz);
+      const fresh = day.filter((e) => {
+        const key = `${e.uid ?? e.title}|${e.starts_at}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      if (!fresh.length) continue;
+      daysWithEvents += 1;
+      const at = new Date(new Date(nowIso).getTime() + o * 24 * HOUR).toISOString();
+      const dayName = startOffset === 0 && o === 0
+        ? "Today"
+        : startOffset === 0 && o === 1
+          ? "Tomorrow"
+          : fmt(at, tz, { weekday: "short", month: "short", day: "numeric" });
+      for (const e of fresh) {
+        const when = e.all_day ? "all day" : clockLabel(e.starts_at, tz);
+        lines.push(`- ${dayName}, ${when}: ${e.title}${e.location ? ` @ ${e.location}` : ""}`);
+      }
+    }
+    const label = startOffset === 0 ? "Your week" : "Next week";
+    if (!lines.length) return { text: `${label} is clear — nothing on the record for those 7 days.`, deep: false };
+    const { text, truncated } = capped(lines, 12);
+    const clearDays = span - daysWithEvents;
+    const tail = clearDays > 0 ? `\n${clearDays} of the 7 days are clear.` : "";
+    return { text: `${label}:\n${text}${tail}`, deep: truncated };
+  }
+
   const when = dayLabel(query.dayOffset, nowIso, tz);
   const day = eventsOnDay(events, query.dayOffset, nowIso, tz);
   if (!day.length) return { text: `Nothing on your calendar ${when}.`, deep: false };
@@ -263,15 +308,26 @@ export function answerAfterEvent(
 }
 
 /** Compact block for a model's context, so Ask reads the same rows Telegram does. */
-export function calendarContextBlock(rawEvents: CalReadEvent[], ctx: { now?: string; tz?: string }): string {
+export function calendarContextBlock(rawEvents: CalReadEvent[], ctx: { now?: string; tz?: string; days?: number }): string {
   const nowIso = ctx.now ?? new Date().toISOString();
   const tz = ctx.tz || "UTC";
   const events = dedupeEvents(rawEvents);
   if (!events.length) return "";
   const running = ongoingAt(events, nowIso);
-  const next = upcomingFrom(events, nowIso, 8);
+  /* With a day window, hold every event inside it (a week read needs the whole
+     week, not the next eight rows); without one, keep the old next-eight shape. */
+  const at = new Date(nowIso).getTime();
+  const next = ctx.days
+    ? events
+        .filter((e) => {
+          const s = new Date(e.starts_at).getTime();
+          return s > at && s <= at + (ctx.days as number) * 24 * HOUR;
+        })
+        .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+        .slice(0, 40)
+    : upcomingFrom(events, nowIso, 8);
   const lines: string[] = [];
   for (const e of running) lines.push(`- ON NOW: ${e.title} (until ${clockLabel(new Date(endOf(e)).toISOString(), tz)})`);
   for (const e of next) lines.push(`- ${fmt(e.starts_at, tz, { weekday: "short", month: "short", day: "numeric" })} ${clockLabel(e.starts_at, tz)}: ${e.title}${e.location ? ` @ ${e.location}` : ""}`);
-  return `Calendar rows Echo holds (real ingested events, timezone ${tz}). Answer calendar questions from these and nothing else; if it is not here, say you do not see it:\n${lines.join("\n")}`;
+  return `Calendar rows Echo holds (real ingested events${ctx.days ? ` covering the next ${ctx.days} days` : ""}, timezone ${tz}). Answer calendar questions from these and nothing else; if it is not here, say you do not see it:\n${lines.join("\n")}`;
 }
