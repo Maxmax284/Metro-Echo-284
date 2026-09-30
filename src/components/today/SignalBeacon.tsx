@@ -45,8 +45,8 @@ export function SolariWord({ word, tone = "live" }: { word: string; tone?: "live
           setGen((g) => g + 1);
           // Landings get a soft clack; mid-riffle ticks are sparse so the
           // board flutters instead of rattling.
-          if (landed > 0) play("clack", { gain: 0.6 });
-          else if (s % 2 === 0) play("tick", { gain: 0.3 });
+          if (landed > 0) play("clack", { gain: 0.45 });
+          else if (s % 2 === 0) play("tick", { gain: 0.2 });
         }, s * STEP_MS),
       );
     }
