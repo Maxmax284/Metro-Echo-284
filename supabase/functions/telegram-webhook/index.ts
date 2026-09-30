@@ -1486,28 +1486,22 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     }
     throw new Error(`ai gateway ${r.status}`);
   }
-  const j = r ? await r.json() : null;
-  const choice = j?.choices?.[0]?.message;
-  if (r && !choice?.content?.trim() && !(choice?.tool_calls ?? []).length) {
+  const turn = r ? await collectResponsesTurn(r) : null;
+  if (r && turn && !turn.text.trim() && !turn.toolCalls.length) {
     /* An answerless turn is a fault, not an answer. Record what came back so a
        silent model never masquerades as "On it." again. */
-    console.error("ai empty turn", JSON.stringify({
-      finish: j?.choices?.[0]?.finish_reason ?? null,
-      native: j?.choices?.[0]?.native_finish_reason ?? null,
-      err: j?.error ?? null,
-      keys: Object.keys(j ?? {}),
-    }));
+    console.error("ai empty turn", JSON.stringify({ runId: turn.runId ?? null }));
   }
-  if (!reply) reply = choice?.content?.trim() ?? "";
+  if (!reply) reply = turn?.text.trim() ?? "";
   /* A tool that was asked for and did not answer is a fact worth saying out
      loud. Silence used to come back as "On it.", which read like a job done. */
   let unanswered = 0;
-  for (const tc of choice?.tool_calls ?? []) {
+  for (const tc of turn?.toolCalls ?? []) {
     try {
-      const args = JSON.parse(tc.function.arguments || "{}");
-      const toolName = calendarDraft && tc.function.name === "refine_calendar_change"
+      const args = JSON.parse(tc.arguments || "{}");
+      const toolName = calendarDraft && tc.name === "refine_calendar_change"
         ? "stage_calendar_change"
-        : tc.function.name;
+        : tc.name;
       const res = await applyIntent(sb, userId, toolName, {
         ...args,
         _conversation_id: conv?.id ?? null,
@@ -1527,11 +1521,11 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
         calendarActionId = ((res as any).calendarActionId as string | null | undefined) ?? calendarActionId;
       } else {
         unanswered += 1;
-        console.error("telegram tool unhandled", tc.function?.name);
+        console.error("telegram tool unhandled", tc.name);
       }
     } catch (e) {
       unanswered += 1;
-      console.error("telegram tool failed", tc.function?.name, e instanceof Error ? e.message : e);
+      console.error("telegram tool failed", tc.name, e instanceof Error ? e.message : e);
     }
   }
   /* A reminder alone never reaches Google. Offer it once as a calendar entry

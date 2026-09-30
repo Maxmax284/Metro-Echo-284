@@ -914,24 +914,28 @@ Deno.serve(async (req: Request) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const upstream = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages,
-        stream: true,
-        /* Any read the pre-pass now owns is withheld from the answering model,
-           so the browser can never be asked to paste a second answer beside
-           the one being streamed. Write and staging tools are untouched. */
-        tools: tools.filter((t: any) => !isEchoRead(String(t?.function?.name ?? ""))),
-      }),
+    /* One conversational brain across surfaces: gpt-6-astra on the Responses
+       API, the same turn Telegram drains. Gemini keeps the read pre-pass above
+       and the radar/search pipeline — division of labour, hardcoded. The
+       Responses stream is translated back into the chat-completions SSE shape
+       the room already reads, so the client contract never moves. */
+    const upstream = await postResponsesTurn({
+      apiKey: LOVABLE_API_KEY,
+      messages,
+      /* Any read the pre-pass now owns is withheld from the answering model,
+         so the browser can never be asked to paste a second answer beside
+         the one being streamed. Write and staging tools are untouched. */
+      tools: tools.filter((t: any) => !isEchoRead(String(t?.function?.name ?? ""))),
+      effort: "low",
     });
 
-    if (upstream.status === 429 || upstream.status === 402) {
-      return new Response(JSON.stringify({ error: upstream.status === 429 ? "rate limited" : "credits exhausted" }), {
-        status: upstream.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (upstream.status === 429 || upstream.status === 402 || upstream.status === 403) {
+      return new Response(
+        JSON.stringify({
+          error: upstream.status === 429 ? "rate limited" : upstream.status === 402 ? "credits exhausted" : "provider denied",
+        }),
+        { status: upstream.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
     if (!upstream.ok || !upstream.body) {
       const t = await upstream.text();
@@ -944,65 +948,40 @@ Deno.serve(async (req: Request) => {
     const stream = new ReadableStream({
       async start(controller) {
         const enc = new TextEncoder();
-        const dec = new TextDecoder();
-        const reader = upstream.body!.getReader();
-        let buf = "";
-        const toolBuf = new Map<number, { name: string; args: string }>();
+        const send = (obj: unknown) =>
+          controller.enqueue(enc.encode(`data: ${JSON.stringify(obj)}\n\n`));
 
         /* Provenance, up front: the reads that shaped this answer, in plain
            English, so "Why this?" names real lookups instead of guessing. */
-        if (reads.length) {
-          controller.enqueue(
-            enc.encode(`data: ${JSON.stringify({ reads: readProvenance(reads) })}\n\n`),
-          );
-        }
+        if (reads.length) send({ reads: readProvenance(reads) });
 
-        const flushTools = () => {
-          for (const [, t] of toolBuf) {
-            try {
-              const args = t.args ? JSON.parse(t.args) : {};
-              const evt = `data: ${JSON.stringify({ intent: { name: t.name, args, grounding: { sources: groundedSources, asked_at: new Date().toISOString() } } })}\n\n`;
-              controller.enqueue(enc.encode(evt));
-            } catch { /* ignore */ }
-          }
-          toolBuf.clear();
-        };
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = dec.decode(value, { stream: true });
-          buf += chunk;
-          // Re-emit upstream chunk verbatim so client gets token-by-token text
-          controller.enqueue(value);
-
-          // Parse to capture tool deltas
-          let i: number;
-          while ((i = buf.indexOf("\n")) !== -1) {
-            let line = buf.slice(0, i);
-            buf = buf.slice(i + 1);
-            if (line.endsWith("\r")) line = line.slice(0, -1);
-            if (!line.startsWith("data: ")) continue;
-            const json = line.slice(6).trim();
-            if (json === "[DONE]") continue;
-            try {
-              const p = JSON.parse(json);
-              const tc = p.choices?.[0]?.delta?.tool_calls as any[] | undefined;
-              if (tc) {
-                for (const t of tc) {
-                  const idx = t.index ?? 0;
-                  const cur = toolBuf.get(idx) ?? { name: "", args: "" };
-                  if (t.function?.name) cur.name = t.function.name;
-                  if (t.function?.arguments) cur.args += t.function.arguments;
-                  toolBuf.set(idx, cur);
-                }
+        const reducer = createTurnReducer();
+        try {
+          for await (const event of iterResponsesEvents(upstream.body!)) {
+            for (const d of reducer.push(event)) {
+              if (d.kind === "text") {
+                // Chat-completions-shaped text chunk — the room's reader contract.
+                send({ choices: [{ index: 0, delta: { content: d.delta } }] });
+              } else {
+                let args: Record<string, unknown> = {};
+                try { args = d.call.arguments ? JSON.parse(d.call.arguments) : {}; } catch { /* partial */ }
+                send({
+                  intent: {
+                    name: d.call.name,
+                    args,
+                    grounding: { sources: groundedSources, asked_at: new Date().toISOString() },
+                  },
+                });
               }
-              const finish = p.choices?.[0]?.finish_reason;
-              if (finish === "tool_calls" || finish === "stop") flushTools();
-            } catch { /* partial */ }
+            }
           }
+        } catch (e) {
+          /* A severed upstream stream ends the turn with whatever already
+             arrived — never a fabricated error sentence in the model's mouth. */
+          console.error("responses stream", e);
         }
-        flushTools();
+        send({ choices: [{ index: 0, delta: {}, finish_reason: "stop" }] });
+        controller.enqueue(enc.encode("data: [DONE]\n\n"));
         controller.close();
       },
     });
