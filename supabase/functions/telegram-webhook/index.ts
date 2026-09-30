@@ -155,6 +155,7 @@ import { afterLookLine, intentFromCaption, lookAtImage } from "../_shared/lookAt
 import { askForDayWords, readDay, readFlightAsk } from "../_shared/flightChat.ts";
 import { dropConfirmWords, dropFlightPlan, fileFlightByNumber, findFlightByNumber } from "../_shared/flightFile.ts";
 import { fitToBody } from "../_shared/responseDepth.ts";
+import { collectResponsesTurn, postResponsesTurn } from "../_shared/responsesChat.ts";
 import {
   calendarApprovalButtons,
   calendarEditButton,
@@ -1445,10 +1446,15 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     readOnly = true;
   }
 
-  const r = (readOnly || intents.length) ? null : await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "google/gemini-2.5-flash", messages, tools }),
+  /* One conversational brain across surfaces: gpt-6-astra on the Responses API,
+     the same turn the in-app Echo room streams. Streamed on the wire so a long
+     read never times the function out; drained here because Telegram wants one
+     reply, then the intents it called. */
+  const r = (readOnly || intents.length) ? null : await postResponsesTurn({
+    apiKey: Deno.env.get("LOVABLE_API_KEY") ?? "",
+    messages,
+    tools,
+    effort: "low",
   });
   if (r && !r.ok) {
     /* Delivery is healthy and the capture is already recorded above. Each
