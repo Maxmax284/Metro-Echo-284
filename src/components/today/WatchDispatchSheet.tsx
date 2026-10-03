@@ -11,7 +11,7 @@
 // the bottom for when the slip is not enough, prefilled and never sent
 // for you.
 import { useEffect, useState } from "react";
-import { ChevronRight, MessageSquare, Pause, Play, Radio, Square } from "lucide-react";
+import { ChevronRight, CloudSun, MessageSquare, Pause, Play, Radio, Square } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { LoadingState } from "@/components/ui/state-views";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,8 @@ import { useAskContext } from "@/hooks/useAskContext";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { humanizeEvent } from "@/lib/plainLabels";
 import { checkWords, debriefPrompt, spanWords } from "@/lib/radar";
+import { looksLikeWeather } from "@/lib/weatherWords";
+import { formatTemp, useTempUnit } from "@/lib/tempUnit";
 import { cn } from "@/lib/utils";
 import {
   CHECKABLE_WATCH_STATES,
