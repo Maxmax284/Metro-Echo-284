@@ -26,7 +26,7 @@ export type RadarRow = {
 
 export type RadarModel =
   | { kind: "empty" }
-  | { kind: "quiet"; openCount: number; rows: RadarRow[] }
+  | { kind: "quiet"; openCount: number; rows: RadarRow[]; boardLine: string | null }
   | { kind: "attention"; headline: string; rows: RadarRow[] };
 
 function isOpen(w: Watch): boolean {
@@ -111,9 +111,28 @@ export function radarModel(watches: Watch[], now: number = Date.now()): RadarMod
   const behind = shown.filter((w) => isOpen(w) && w.state !== "needs_you" && needsAttention(w, now)).length;
 
   if (needsYou + failed + behind === 0) {
-    return { kind: "quiet", openCount: shown.filter(isOpen).length, rows };
+    return {
+      kind: "quiet",
+      openCount: shown.filter(isOpen).length,
+      rows,
+      boardLine: quietBoardLine(rows),
+    };
   }
   return { kind: "attention", headline: headline(needsYou, failed, behind), rows };
+}
+
+/**
+ * What the Solari board says while the radar is quiet: the first line of the
+ * freshest recorded read, when one exists. A weather watch that just swept
+ * reads as live conditions on the board — never as "nothing has moved". No
+ * read on record yet → null, and the board falls back to the quiet headline.
+ */
+export function quietBoardLine(rows: RadarRow[], max = 110): string | null {
+  for (const row of rows) {
+    const line = (row.latest ?? "").split("\n").map((l) => l.trim()).find(Boolean);
+    if (line) return line.length > max ? `${line.slice(0, max - 1).trimEnd()}…` : line;
+  }
+  return null;
 }
 
 /** The quiet headline: silence is a valid answer, said plainly. */
