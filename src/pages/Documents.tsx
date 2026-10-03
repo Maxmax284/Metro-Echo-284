@@ -456,6 +456,7 @@ function UnderConstructionBanner() {
               <li>Draft from templates (NDA, SOW, service, payment, letter) with tone.</li>
               <li>Revise drafts in plain English — typed or dictated; nothing executes without approval.</li>
               <li>Multi-turn intake — Echo asks one question at a time, then reads it back before drafting.</li>
+              <li>One-breath intake — say or type the whole brief; Echo sorts it into the right template and fields, then reads it back.</li>
               <li>Upload a contract → extract → plain-English review: parties, key dates, money terms, obligations, risks, missing/unclear, questions to ask, verdict.</li>
               <li>Export packets: PDF (operator / client) + Word (operator / client / signature with watermark + sig page).</li>
               <li>"Ask Echo" prompts pre-fill the Companion (tighten, soften, boardroom, explain risks, before signing, money).</li>
