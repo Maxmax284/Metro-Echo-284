@@ -9,7 +9,8 @@
 // full detail (map, saved places, precision, trip history) lives on the Aware
 // desk under Work, one tap further in.
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Loader2, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ChevronDown, ChevronRight, CloudSun, Loader2, Sparkles } from "lucide-react";
 import { MachineLabel } from "@/components/ui/instrument";
 import { MOTION_ARRIVE, MOTION_SIGNAL } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -171,6 +172,13 @@ export function PlaceCueStrip({
                 {scanning ? "Reading this spot…" : "Read this spot"}
               </button>
             ) : null}
+            <Link
+              to="/weather"
+              className="inline-flex min-h-[32px] items-center gap-1 text-[11.5px] text-primary hover:underline"
+            >
+              <CloudSun className="h-3.5 w-3.5" />
+              Live weather station
+            </Link>
             {onOpen ? (
               <button
                 type="button"
