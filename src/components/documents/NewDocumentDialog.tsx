@@ -231,8 +231,9 @@ export function NewDocumentDialog({
               />
               <div className="mt-1.5 flex items-center gap-2">
                 <DictateButton
+                  value={brief}
+                  onChange={setBrief}
                   label="Dictate the brief"
-                  onFinal={(phrase) => setBrief((prev) => (prev ? `${prev.trimEnd()} ${phrase}` : phrase))}
                 />
                 <button
                   type="button"
