@@ -217,6 +217,36 @@ export function WatchDispatchSheet({
           </div>
         )}
 
+        {/* The sky card — conditions watches carry the live instruments next
+            to the sitrep, so a month-old advisory never reads as today's sky.
+            Telemetry time is its own receipt, separate from the sweep's. */}
+        {weatherWatch && (
+          <div className="mt-3 vanta-inset px-3 py-2">
+            <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+              <CloudSun className="h-3 w-3" /> Right now, from the instruments
+            </p>
+            {skyLoading ? (
+              <p className="mt-1 text-xs text-muted-foreground">Reading the sky…</p>
+            ) : sky ? (
+              <>
+                <p className="mt-1 text-xs leading-snug text-foreground">
+                  {formatTemp(sky.tempC, tempUnit)}, feels {formatTemp(sky.feelsC, tempUnit)} · {sky.condition}
+                  {sky.rain ? ` · rain ${sky.rain}` : " · no rain window above 50% in 24h"}
+                </p>
+                {watch.telemetry_at && (
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    instruments checked {spanWords(Date.now() - Date.parse(watch.telemetry_at))} ago
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">
+                No instrument read just now — the sitrep above is what is on record.
+              </p>
+            )}
+          </div>
+        )}
+
         <p className="mt-3 text-[11px] leading-snug text-muted-foreground">{watchLine(watch)}</p>
 
         {/* The sweep log — every recorded check, plain words, newest first. */}
