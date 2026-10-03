@@ -89,14 +89,14 @@ export default function WeatherStation() {
   if (loading) {
     return (
       <div className="mx-auto max-w-md px-4 pt-16">
-        <LoadingState title="Reading the sky…" description="Pulling live telemetry for your stamped ground." />
+        <LoadingState label="Reading the sky for your stamped ground…" />
       </div>
     );
   }
   if (error) {
     return (
       <div className="mx-auto max-w-md px-4 pt-16">
-        <ErrorState title="No read." description={error} onRetry={() => { setLoading(true); void load(); }} />
+        <ErrorState title="No read." detail={error} onRetry={() => { setLoading(true); void load(); }} />
       </div>
     );
   }
@@ -105,7 +105,7 @@ export default function WeatherStation() {
       <div className="mx-auto max-w-md px-4 pt-16">
         <EmptyState
           title="No ground to read."
-          description="The station reads the sky above your stamped ground. Stamp where you are on Today and this page comes alive."
+          hint="The station reads the sky above your stamped ground. Stamp where you are on Today and this page comes alive."
         />
         <div className="mt-4 text-center">
           <Link to="/" className="text-sm text-primary">Back to Today</Link>
