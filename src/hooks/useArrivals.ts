@@ -30,7 +30,7 @@ export function useArrivals(): ArrivalsRead {
 
     const [files, messages] = await Promise.all([
       applyScope(
-        supabase.from("ingested_files").select("id, filename, created_at, source, mime_type"),
+        supabase.from("ingested_files").select("id, filename, created_at, source, mime_type, suggested_summary"),
       )
         .in("review_status", ["new", "needs_review", "suggested"])
         .order("created_at", { ascending: false })
@@ -55,7 +55,7 @@ export function useArrivals(): ArrivalsRead {
       const mime = (f as any).mime_type as string | null;
       candidates.push({
         id: f.id,
-        text: f.filename || "A capture",
+        text: (f as any).suggested_summary || f.filename || "A capture",
         at: f.created_at,
         channel: f.source === "telegram" ? "telegram" : "upload",
         where: f.source === "telegram" ? "Telegram" : null,
