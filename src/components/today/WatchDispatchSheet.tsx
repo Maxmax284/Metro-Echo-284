@@ -136,6 +136,9 @@ export function WatchDispatchSheet({
   const { openAskWithContext } = useAskContext();
   const [busy, setBusy] = useState<"check" | "pause" | "stop" | null>(null);
   const log = useSweepLog(watch?.id ?? null, open);
+  const weatherWatch = !!watch && looksLikeWeather(watch.goal);
+  const { sky, loading: skyLoading } = useStationSky(weatherWatch, open);
+  const [tempUnit] = useTempUnit();
 
   if (!watch) return null;
   const checkable = (CHECKABLE_WATCH_STATES as string[]).includes(watch.state);
