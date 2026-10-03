@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  radarModel, checkWords, needsAttention, spanWords, quietHeadline, debriefPrompt,
+  radarModel, checkWords, needsAttention, spanWords, quietHeadline, quietBoardLine, debriefPrompt,
   RADAR_BEHIND_MS, RADAR_FAILED_NEWS_MS,
 } from "@/lib/radar";
 import type { Watch } from "@/lib/watch";
