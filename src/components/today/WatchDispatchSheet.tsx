@@ -79,6 +79,47 @@ function useSweepLog(watchId: string | null, open: boolean): SweepLog {
   return log;
 }
 
+type StationSky = {
+  tempC: number;
+  feelsC: number;
+  condition: string;
+  rain: string | null;
+} | null;
+
+/** The live sky for a conditions watch — read on open from the same station
+    the /weather page reads, so the slip and the page never disagree. */
+function useStationSky(enabled: boolean, open: boolean): { sky: StationSky; loading: boolean } {
+  const [sky, setSky] = useState<StationSky>(null);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!open || !enabled) return;
+    let alive = true;
+    setLoading(true);
+    void (async () => {
+      const { data } = await supabase.functions.invoke("weather-station");
+      if (!alive) return;
+      const d = data as {
+        current?: { tempC: number; feelsC: number; condition: string };
+        rainWindows?: Array<{ from: string; to: string }>;
+      } | null;
+      if (d?.current) {
+        const w = d.rainWindows?.[0];
+        setSky({
+          tempC: d.current.tempC,
+          feelsC: d.current.feelsC,
+          condition: d.current.condition,
+          rain: w ? `${w.from.slice(11, 16)}–${w.to.slice(11, 16)}` : null,
+        });
+      }
+      setLoading(false);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [open, enabled]);
+  return { sky, loading };
+}
+
 export function WatchDispatchSheet({
   watch,
   open,
