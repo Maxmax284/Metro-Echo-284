@@ -61,9 +61,11 @@ export async function sitrepFrom(
             role: "system",
             content:
               `${voice}\n\nYou are reading a handful of fresh web search results about a live situation. ` +
+              `Today is ${new Date().toISOString().slice(0, 10)}. ` +
               `Write a 2–3 sentence situational sitrep: what is actually happening right now, what moved, what the person should know. ` +
               `Conclusion first. Never invent facts not in the sources. Never say "according to" — speak it as ground truth. ` +
-              `If the sources are thin or contradictory, say exactly that.`,
+              `Freshness is law: a warning, alert or event dated more than a few days before today is stale — never present it as happening now. ` +
+              `If the sources are old, thin or contradictory, say exactly that — "nothing current on the record" is a valid sitrep and better than a stale scare.`,
           },
           {
             role: "user",
