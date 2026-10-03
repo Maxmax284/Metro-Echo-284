@@ -57,3 +57,11 @@
 - [ ] Telegram capture bridge — test on Maxwell first (Vanta sequencing), then Ground Truth Hub, then CampCore.
 - [ ] Documents roadmap — voice revise, multi-turn intake; parked items stay parked.
 - [ ] Field Beacon / live GPS — pinned, not to build.
+
+## Weather station, live board & in-context units
+- [x] Conditions watches read instruments, not just news — watch-sweep runs weatherRead telemetry alongside SerpApi for weather/marine goals; the sitrep leads with the Now line (Solari board order), advisory clearly marked on its own line; conditions watches re-voice every sweep (sky moves even when news doesn't) while the changed-nudge still fires only on fingerprint movement.
+- [x] Solari board speaks the read — quietBoardLine puts the freshest recorded read's first line on the board while the radar is quiet; "nothing has moved" only when nothing is on record. RadarCard wired, tests pinned (boardLine present/null/capped).
+- [x] weather-station edge function — structured JSON: stamped ground, current sky, 24 hourly hours, rain windows, marine line, and the matching local watch's recorded sitrep as a separate field. Rate-limited, auth-checked.
+- [x] /weather page — standalone station: Solari board headline, instrument cluster, 24h temp+rain strip, Sea & ferries card, On the record advisory strip with Check now (force-sweep + refetch). Linked from Today (PlaceCueStrip + TodayLiveMap).
+- [x] In-context °C/°F — TempUnitToggle pill next to every temperature read (MiniRadarStrip, AwareCockpitCard, AwarenessHUD, /weather); never a Settings hunt; shared vanta.tempunit key untouched. temp-unit + radar tests green, typecheck clean, full suite 2,375 passed (+2 known Telegram date quirks).
+- [x] Live-verified: Koh Samui watch swept — sitrep leads "Now: 30°C, feels like 37°C, overcast. Wind 4 km/h (2 kn) from the W." with the stale May advisory demoted to "that info is from May"; weather-station returns real Ko Samui telemetry (29.7°C, 75% humidity, rain windows).

@@ -7,7 +7,8 @@
 //   - folded by default is wrong here: the whole point is a glance. It stays
 //     open, but it is one short panel, not a second room.
 import { useEffect, useState } from "react";
-import { MapPin } from "lucide-react";
+import { Link } from "react-router-dom";
+import { CloudSun, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAwarenessOptional } from "@/providers/AwarenessProvider";
 import { PlacesBoardMap, type MapSpot } from "@/components/awareness/PlacesBoardMap";
@@ -86,6 +87,13 @@ export function TodayLiveMap({ onOpenPlaces }: { onOpenPlaces?: () => void }) {
           ))}
         </ul>
       ) : null}
+      <Link
+        to="/weather"
+        className="mt-2 inline-flex min-h-[32px] items-center gap-1 text-[11px] text-primary hover:underline"
+      >
+        <CloudSun className="h-3.5 w-3.5" />
+        Live weather station
+      </Link>
     </CollapsibleSection>
   );
 }

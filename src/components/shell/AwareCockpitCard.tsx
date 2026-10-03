@@ -9,6 +9,7 @@ import { SourceStatusPill } from "@/components/awareness/SourceStatusPill";
 import { classifyTier, type LocationTier } from "@/lib/awarenessPlainTalk";
 import { CONFIDENCE_TONE } from "@/lib/vantaSignal";
 import { formatTemp, useTempUnit } from "@/lib/tempUnit";
+import { TempUnitToggle } from "@/components/awareness/TempUnitToggle";
 
 type Props = {
   className?: string;
@@ -185,6 +186,7 @@ export function AwareCockpitCard({ className, onOpenAwareness }: Props) {
           <Thermometer className="h-3 w-3" />
           {weather.tempC != null ? formatTemp(weather.tempC, tempUnit) : "—"}
           {weather.condition && <span>· {weather.condition}</span>}
+          <TempUnitToggle className="ml-auto" />
         </div>
       )}
 

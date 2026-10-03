@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  radarModel, checkWords, needsAttention, spanWords, quietHeadline, debriefPrompt,
+  radarModel, checkWords, needsAttention, spanWords, quietHeadline, quietBoardLine, debriefPrompt,
   RADAR_BEHIND_MS, RADAR_FAILED_NEWS_MS,
 } from "@/lib/radar";
 import type { Watch } from "@/lib/watch";
@@ -170,5 +170,34 @@ describe("debriefPrompt", () => {
     expect(debriefPrompt("Keep an eye on the gate change")).toBe(
       "Catch me up on this: Keep an eye on the gate change",
     );
+  });
+});
+
+describe("quietBoardLine", () => {
+  it("puts the freshest recorded read on the board while the radar is quiet", () => {
+    const model = radarModel([watch({ last_read: "Now: 29°C, overcast.\nAdvisory: calm seas." })], NOW);
+    expect(model.kind).toBe("quiet");
+    if (model.kind === "quiet") {
+      expect(model.boardLine).toBe("Now: 29°C, overcast.");
+    }
+  });
+
+  it("stays null when no watch has a read on record yet", () => {
+    const model = radarModel([watch({})], NOW);
+    expect(model.kind).toBe("quiet");
+    if (model.kind === "quiet") {
+      expect(model.boardLine).toBeNull();
+    }
+  });
+
+  it("skips empty reads and caps the line for the flap board", () => {
+    const rows = [
+      { id: "1", goal: "a", state: "watching" as const, stateLabel: "Watching", check: "", latest: null, needsAttention: false },
+      { id: "2", goal: "b", state: "watching" as const, stateLabel: "Watching", check: "", latest: `  \n${"x".repeat(200)}`, needsAttention: false },
+    ];
+    const line = quietBoardLine(rows);
+    expect(line).not.toBeNull();
+    expect(line!.length).toBeLessThanOrEqual(110);
+    expect(line!.endsWith("…")).toBe(true);
   });
 });

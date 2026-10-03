@@ -43,6 +43,7 @@ const ConnectedAccounts = lazy(() => import("./pages/ConnectedAccounts.tsx"));
 const WorkspaceStructure = lazy(() => import("./pages/WorkspaceStructure.tsx"));
 const ProjectsPage = lazy(() => import("./pages/Projects.tsx"));
 const FlightsPage = lazy(() => import("./pages/Flights.tsx"));
+const WeatherStationPage = lazy(() => import("./pages/WeatherStation.tsx"));
 const ProjectBriefPage = lazy(() => import("./pages/ProjectBrief.tsx"));
 const DocumentsPage = lazy(() => import("./pages/Documents.tsx"));
 const RoomMapPage = lazy(() => import("./pages/RoomMap.tsx"));
@@ -101,6 +102,7 @@ const App = () => {
                                 {/* A flight number is put in standing in a line.
                                     It gets its own address so it is one tap. */}
                                 <Route path="/flights" element={<FlightsPage />} />
+                                <Route path="/weather" element={<WeatherStationPage />} />
                                 <Route path="/flight" element={<Navigate to="/flights" replace />} />
                                 <Route path="/projects" element={<ProjectsPage />} />
                                 <Route path="/projects/:id" element={<ProjectBriefPage />} />

@@ -206,7 +206,7 @@ export function RadarCard() {
           <SolariBoard
             className="mt-2"
             tone={model.kind === "attention" ? "warn" : "default"}
-            text={model.kind === "quiet" ? quietHeadline(model.openCount) : model.headline}
+            text={model.kind === "quiet" ? (model.boardLine ?? quietHeadline(model.openCount)) : model.headline}
           />
           <ul className="mt-2 space-y-1.5">
             {model.rows.map((r) => {
