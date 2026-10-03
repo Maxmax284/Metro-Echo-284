@@ -24,6 +24,7 @@ import { checkPage, checkSearch } from "../_shared/webLook.ts";
 import { serpSearch } from "../_shared/serpSearch.ts";
 import { firstLine, sitrepFrom, stripCitations } from "../_shared/sitrep.ts";
 import { RESEARCH_VOICE } from "../_shared/vantaVoice.ts";
+import { looksLikeWeather, weatherRead } from "../_shared/weatherRead.ts";
 
 Deno.serve(async (req: Request) => {
   const pre = preflight(req);
@@ -261,16 +262,40 @@ Deno.serve(async (req: Request) => {
               query,
               hits,
             );
+            /* A conditions watch (weather, marine, ferries — the sky and the
+               sea) reads live coordinate telemetry alongside the news scan, so
+               the board always leads with what the instruments say right now —
+               never a stale advisory wearing today's clothes. Conditions move
+               even when the news doesn't, so a conditions watch re-voices every
+               sweep; the changed-nudge still fires only when the fingerprint
+               moves, keeping quiet sweeps quiet. */
+            const conditionsWatch = looksLikeWeather(`${row.goal} ${query}`);
+            let telemetry = "";
+            if (conditionsWatch) {
+              telemetry = await weatherRead(
+                admin as never,
+                { userId: row.user_id, orgId: row.organization_id ?? null },
+                {},
+              ).catch(() => "");
+            }
             /* A failed synthesis never blocks the check: fall back to the raw
                headline, and never overwrite a good verdict with a worse one. */
-            const needsVoice = checked.changed || !row.last_read;
+            const needsVoice = checked.changed || !row.last_read || conditionsWatch;
             const rawVerdict = needsVoice
               ? await sitrepFrom(query, hits, Deno.env.get("LOVABLE_API_KEY") ?? "", RESEARCH_VOICE)
               : "";
             /* The board shows sources on the slip, so citation brackets are
                noise here — the chat answer keeps them, the radar drops them. */
-            const verdict = stripCitations(rawVerdict);
-            if (verdict) lastRead = verdict.slice(0, 400);
+            const advisory = stripCitations(rawVerdict);
+            let verdict = advisory;
+            if (telemetry) {
+              /* Telemetry lines 1–3 are the header, the Now line and the Today
+                 line — the instruments. The advisory rides after them, clearly
+                 marked, so forecast and news can never blur together. */
+              const live = telemetry.split("\n").slice(0, 3).join(" ").trim();
+              verdict = advisory ? `${live} Advisory: ${advisory}` : live;
+            }
+            if (verdict) lastRead = verdict.slice(0, 900);
             else if (!row.last_read && hits[0]?.title) lastRead = hits[0].title.slice(0, 140);
             if (checked.changed) {
               const headline = verdict ? firstLine(verdict) : checked.outcome;
