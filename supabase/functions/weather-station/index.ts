@@ -73,7 +73,77 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: "rate_limited" }, 429);
     }
 
-    const ground = await activeGround(admin, { userId: user.id, orgId: null });
+    /* Optional body: { place_id } reads that stamped ground; { mode: "grounds" }
+       returns one current-temp line per stamped ground for the Today strip. */
+    let placeId: string | null = null;
+    let groundsMode = false;
+    if (req.method === "POST") {
+      const body = await req.json().catch(() => null);
+      if (body && typeof body === "object") {
+        if (typeof body.place_id === "string" && body.place_id) placeId = body.place_id;
+        if (body.mode === "grounds") groundsMode = true;
+      }
+    }
+
+    if (groundsMode) {
+      const grounds = await stampedGrounds(admin, user.id);
+      const withCoords = grounds
+        .map((p) => ({
+          id: String(p.id),
+          label: String(p.label ?? ""),
+          lat: Number((p.geo as Record<string, unknown> | null)?.lat),
+          lon: Number((p.geo as Record<string, unknown> | null)?.lon ??
+            (p.geo as Record<string, unknown> | null)?.lng),
+        }))
+        .filter((p) => p.label && Number.isFinite(p.lat) && Number.isFinite(p.lon));
+      if (withCoords.length === 0) return jsonResponse({ grounds: [] });
+
+      /* One multi-location call — comma-separated coordinates keep this to a
+         single upstream request no matter how many grounds are stamped. */
+      const gUrl =
+        `https://api.open-meteo.com/v1/forecast?latitude=${withCoords.map((p) => p.lat).join(",")}` +
+        `&longitude=${withCoords.map((p) => p.lon).join(",")}` +
+        `&current=temperature_2m,weather_code&forecast_days=1&timezone=auto`;
+      const gr = await fetch(gUrl);
+      if (!gr.ok) return jsonResponse({ error: "telemetry_down" }, 502);
+      const gm = await gr.json();
+      const readings = Array.isArray(gm) ? gm : [gm];
+      return jsonResponse({
+        grounds: withCoords.map((p, i) => {
+          const cur = readings[i]?.current ?? {};
+          return {
+            ...p,
+            tempC: Number(cur.temperature_2m ?? NaN),
+            code: Number(cur.weather_code ?? 0),
+            condition: codeLabel(Number(cur.weather_code ?? 0)),
+            checkedLocal: String(cur.time ?? ""),
+          };
+        }),
+        generatedAt: new Date().toISOString(),
+      });
+    }
+
+    let ground = await activeGround(admin, { userId: user.id, orgId: null });
+    if (placeId) {
+      const grounds = await stampedGrounds(admin, user.id);
+      const picked = grounds.find((p) => String(p.id) === placeId);
+      if (!picked) return jsonResponse({ error: "place_not_found" }, 404);
+      const lat = Number((picked.geo as Record<string, unknown> | null)?.lat);
+      const lon = Number((picked.geo as Record<string, unknown> | null)?.lon ??
+        (picked.geo as Record<string, unknown> | null)?.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        return jsonResponse({ error: "place_has_no_coordinates" }, 200);
+      }
+      ground = {
+        id: String(picked.id),
+        label: String(picked.label ?? ""),
+        country: (picked.country as string | null) ?? null,
+        region: null,
+        lat,
+        lon,
+        stampedAt: (picked.stamped_at as string | null) ?? null,
+      };
+    }
     if (!ground) {
       return jsonResponse({ error: "no_ground" }, 200);
     }
