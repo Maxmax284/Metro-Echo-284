@@ -36,6 +36,7 @@ import { bodyCompare, bodyRead } from "./bodyRead.ts";
 import { reachWords } from "./reachBody.ts";
 import { careRead } from "./careRead.ts";
 import { flightRead } from "./flightRead.ts";
+import { weatherRead } from "./weatherRead.ts";
 
 /** Every read Echo can perform on the person's own desks. */
 export const ECHO_READ_NAMES = [
@@ -61,6 +62,7 @@ export const ECHO_READ_NAMES = [
   "lease_checks",
   "body_compare",
   "how_echo_reaches_you",
+  "weather_read",
 ] as const;
 
 export type EchoReadName = (typeof ECHO_READ_NAMES)[number];
@@ -93,6 +95,7 @@ export const READ_SOURCE: Record<EchoReadName, string> = {
   local_customs: "kept notes on local custom, with the day they were checked",
   cost_of_living: "the housing figures you gave, added up as real monthly cost",
   lease_checks: "the questions a lease has to answer before you sign",
+  weather_read: "live model weather for your exact stamped coordinates",
 };
 
 /**
@@ -475,6 +478,21 @@ export const ECHO_READ_TOOLS = [
       parameters: { type: "object", properties: {}, additionalProperties: false },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "weather_read",
+      description:
+        "Read-only: live model weather (Open-Meteo) for the person's stamped ground — current temperature, sky condition, wind, today's high/low, timed rain windows, and a sea/ferry line. ALWAYS use this for weather, rain, forecast, temperature, storm, sea, ferry, beach or 'what is it like outside' questions — never answer those from general knowledge or a web search, which returns old news instead of the sky. Optionally takes a place name when the person asks about somewhere other than where they are.",
+      parameters: {
+        type: "object",
+        properties: {
+          place: { type: "string", description: "Optional place name. Omit to read the person's stamped ground." },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
 ] as const;
 
 export type EchoReadContext = ScopeArgs & { tz?: string | null };
@@ -600,6 +618,10 @@ export async function runEchoRead(
     }
     case "how_echo_reaches_you": {
       return { name, text: reachWords(), source };
+    }
+    case "weather_read": {
+      const text = await weatherRead(sb as never, scope, { place: a.place ? String(a.place) : null });
+      return { name, text, source };
     }
     case "body_compare": {
       const text = await bodyCompare(sb, scope, {

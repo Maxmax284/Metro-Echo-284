@@ -27,6 +27,7 @@ import {
   runEchoRead,
   type EchoReadResult,
 } from "../_shared/echoReads.ts";
+import { activeGround, looksLikeWeather } from "../_shared/weatherRead.ts";
 import {
   routeRequest,
   sanitizeQuery,
@@ -565,6 +566,17 @@ Deno.serve(async (req: Request) => {
       verbosity: ["brief", "signal", "spoken", "cue"].includes(String(verbosity)) ? (verbosity as any) : "rich",
     });
 
+    /* The sky is telemetry, not research. A pure weather question reads the
+       weather_read tool (Open-Meteo for the stamped ground); a web lookup
+       returns month-old warnings and travel articles, which then get quoted
+       as current conditions. News/advisory phrasing keeps its research. */
+    if (
+      plan.research && looksLikeWeather(String(message)) &&
+      !/\b(news|flood|protest|strike|advisor|going on|happening|latest)\b/i.test(String(message))
+    ) {
+      plan.research = null;
+    }
+
     const attachedIds = hints.map((h) => h.ingested_file_id).filter((x): x is string => typeof x === "string" && !!x);
     /* A person names a source the way it exists in the world — "the delivery
        note", "Harbour Logistics" — not "the ingested file". So Echo always
@@ -886,6 +898,67 @@ Deno.serve(async (req: Request) => {
       console.error("read pre-pass failed", e);
     }
 
+    /* Weather never falls through to a news search. If the question is about
+       the sky and the pre-pass skipped the read, take it now — a missed tool
+       call must never become an old-warning answer. */
+    if (looksLikeWeather(String(message)) && !reads.some((r) => r.name === "weather_read")) {
+      try {
+        const got = await runEchoRead(supabase as never, "weather_read", {}, {
+          userId: user.id,
+          orgId: scopeOrgId,
+          tz,
+        });
+        if (got) reads.push(got);
+      } catch (e) {
+        console.error("weather fallback read", e);
+      }
+    }
+
+    /* "Here" on every turn: the stamped ground, plus any live watch already
+       reading that ground. A local watch speaks without its radar thread
+       being opened — the person asked Echo, not the board. */
+    let groundBlock = "";
+    try {
+      const ground = await activeGround(supabase as never, { userId: user.id, orgId: scopeOrgId });
+      if (ground) {
+        const lines = [
+          `Active ground: ${ground.label}${ground.country ? `, ${ground.country}` : ""} (${ground.lat.toFixed(4)}, ${ground.lon.toFixed(4)})${ground.stampedAt ? ` — stamped ${ground.stampedAt.slice(0, 10)}` : ""}. "Here", "outside", and "local" mean this place.`,
+        ];
+        const token = (ground.label.split(/[\s,]+/)[0] ?? "").toLowerCase();
+        if (token.length > 2) {
+          const { data: ws } = await supabase
+            .from("watches")
+            .select("goal,state,last_read,last_check_at,success_when")
+            .eq("user_id", user.id)
+            .in("state", ["on_it", "watching", "waiting", "needs_you"])
+            .not("last_read", "is", null)
+            .order("last_check_at", { ascending: false })
+            .limit(8);
+          const local = (ws ?? []).filter((w: any) =>
+            `${w.goal} ${String(w.success_when?.query ?? "")}`.toLowerCase().includes(token)
+          ).slice(0, 2);
+          for (const w of local) {
+            lines.push(
+              `Live local watch ("${w.goal}", checked ${w.last_check_at ?? "never"}): ${String(w.last_read).slice(0, 400)}`,
+            );
+          }
+          if (local.length) {
+            lines.push("That watch line is recorded fact — speak from it, and say when it was checked.");
+          }
+        }
+        groundBlock = lines.join("\n");
+      }
+    } catch (e) {
+      console.error("ground block", e);
+    }
+
+    /* A weather read keeps its spine: place and local check-time first, then
+       Now, then the day's timing, then the sea-and-ferry line. The read's
+       timestamp is the truth — old news is never current conditions. */
+    const weatherShape = reads.some((r) => r.name === "weather_read")
+      ? "A weather_read is in the reads. Keep its shape when you answer: name the place and the local check-time first, then Now, then the day's timing (dry and rain windows), then the sea-and-ferry line when one exists. The read's timestamp is the truth — never present older news as current conditions."
+      : "";
+
     /* "What can you do?" is answered from recorded connections, never from the
        model's imagination. The facts go in as a block so Echo answers in its own
        voice while staying unable to advertise a power it does not have. */
@@ -918,7 +991,7 @@ Deno.serve(async (req: Request) => {
       console.error("judgment failed", e);
     }
 
-    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, headsUpBlock, correctionsBlock, fieldNotesBlock, calendarBlock, readsBlock(reads), abilitiesFacts, lifeFacts, judgeBlock, fileContextBlock, researchBlock]
+    const sysWithCorrections = [SYSTEM_PROMPT, brandBlock, depthBlock, scopeBlock, timeBlock, planBlock(plan, hints), workingBlock, headsUpBlock, correctionsBlock, fieldNotesBlock, calendarBlock, groundBlock, readsBlock(reads), weatherShape, abilitiesFacts, lifeFacts, judgeBlock, fileContextBlock, researchBlock]
       .filter(Boolean).join("\n\n");
 
     const messages = [
