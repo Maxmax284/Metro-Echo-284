@@ -37,27 +37,29 @@ PROVIDERS: Open-Meteo (instruments), SerpApi (web), Lovable AI gateway
 
 ## C. CAPABILITY MATRIX (condensed to what matters)
 
-| Capability | Status | Evidence / note |
-|---|---|---|
-| Watch lifecycle (create→sweep→sitrep→UI→stop/expiry→receipts) | **LIVE** | `watch-sweep/index.ts`, cron */10, lease + cadence backoff, `watch.checked` receipts even for quiet checks |
-| weather-tick hourly instruments | **LIVE, failure-invisible** | cron `7 * * * *`; failures returned in HTTP response only — no receipt, no nudge |
-| Weather system | **LIVE, one engine** | Open-Meteo only; but fetch + `codeLabel` implemented twice (`_shared/weatherRead.ts` vs `weather-station/index.ts`), `LIVE_FIX_SOURCES` copied 3× |
-| Echo pipeline (context→pre-pass→reads→Astra→stream) | **LIVE** | 30 msg flat history, keyword file gating, no token budget |
-| Telegram↔app shared brain | **LIVE** | same `_shared` modules, same Astra client, same ingested_files store; execution boundary holds |
-| Documents chain | **LIVE** | intake sieve, review JSON schema, approval gate, PDF/DOCX export, `document.*` receipts |
-| Sherlock | **LIVE** | Gemini flash, citation-tagged findings, cache + digest + patterns |
-| Awareness evaluate pipeline | **LIVE (corrected)** | agents found no cron in repo — but `vanta-drift-sweep` runs hourly in the live DB; `awareness.evaluated` fired 58×/14d. Proactive layer is real but low-yield |
-| Notification ladder (floors, quiet hours, receipts) | **LIVE** | `reach.ts` + `notifyPolicy.ts`; BUT `commitment-reminders` + `drift-sweep` call `sendWebPush` directly, bypassing the "one place" floor gate |
-| Push (web) | **LIVE** | VAPID, diagnostics, dead-subscription hygiene |
-| Push (native Android) | **GAP** | Capacitor plugin installed, zero wiring |
-| Offline | **GAP (by design so far)** | sw.js is push+share-target only; no shell cache, no write queue, no staleness labels outside boot |
-| Today→Echo context handoff | **MISSING CONNECTION** | `AskVantaBar` bypasses `openAskWithContext`; backend resolves only `nudge`/`watch` of 11 context kinds |
-| Inbox vs Memory surfaces | **DO NOT DUPLICATE (violation live)** | both mount `CapturesView` + `MemoryFilesView` |
-| ConversationSurface vs CompanionWidget; SherlockSurface vs SherlockOverlay | **MISSING DECISION** | two chat UIs, two Sherlock UIs over same state |
-| `command` + `briefs` surfaces | **ORPHANED (zombie rooms)** | mounted, routable, zero entry points |
-| intake-digest, entity-resolve, cadence-sweep | **DEAD/ORPHANED** | no cron in DB, no client caller |
-| AwarenessHUD trust tiers | **PARTIAL** | keyword string-matching source names; Sherlock full-mode is the only structural inference-vs-fact label |
-| Cross-model fallback | **GAP** | one gateway outage kills both brains; SERPAPI_KEY missing degrades silently |
+
+| Capability                                                                 | Status                                | Evidence / note                                                                                                                                               |
+| -------------------------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Watch lifecycle (create→sweep→sitrep→UI→stop/expiry→receipts)              | **LIVE**                              | `watch-sweep/index.ts`, cron */10, lease + cadence backoff, `watch.checked` receipts even for quiet checks                                                    |
+| weather-tick hourly instruments                                            | **LIVE, failure-invisible**           | cron `7 * * * *`; failures returned in HTTP response only — no receipt, no nudge                                                                              |
+| Weather system                                                             | **LIVE, one engine**                  | Open-Meteo only; but fetch + `codeLabel` implemented twice (`_shared/weatherRead.ts` vs `weather-station/index.ts`), `LIVE_FIX_SOURCES` copied 3×             |
+| Echo pipeline (context→pre-pass→reads→Astra→stream)                        | **LIVE**                              | 30 msg flat history, keyword file gating, no token budget                                                                                                     |
+| Telegram↔app shared brain                                                  | **LIVE**                              | same `_shared` modules, same Astra client, same ingested_files store; execution boundary holds                                                                |
+| Documents chain                                                            | **LIVE**                              | intake sieve, review JSON schema, approval gate, PDF/DOCX export, `document.*` receipts                                                                       |
+| Sherlock                                                                   | **LIVE**                              | Gemini flash, citation-tagged findings, cache + digest + patterns                                                                                             |
+| Awareness evaluate pipeline                                                | **LIVE (corrected)**                  | agents found no cron in repo — but `vanta-drift-sweep` runs hourly in the live DB; `awareness.evaluated` fired 58×/14d. Proactive layer is real but low-yield |
+| Notification ladder (floors, quiet hours, receipts)                        | **LIVE**                              | `reach.ts` + `notifyPolicy.ts`; BUT `commitment-reminders` + `drift-sweep` call `sendWebPush` directly, bypassing the "one place" floor gate                  |
+| Push (web)                                                                 | **LIVE**                              | VAPID, diagnostics, dead-subscription hygiene                                                                                                                 |
+| Push (native Android)                                                      | **GAP**                               | Capacitor plugin installed, zero wiring                                                                                                                       |
+| Offline                                                                    | **GAP (by design so far)**            | sw.js is push+share-target only; no shell cache, no write queue, no staleness labels outside boot                                                             |
+| Today→Echo context handoff                                                 | **MISSING CONNECTION**                | `AskVantaBar` bypasses `openAskWithContext`; backend resolves only `nudge`/`watch` of 11 context kinds                                                        |
+| Inbox vs Memory surfaces                                                   | **DO NOT DUPLICATE (violation live)** | both mount `CapturesView` + `MemoryFilesView`                                                                                                                 |
+| ConversationSurface vs CompanionWidget; SherlockSurface vs SherlockOverlay | **MISSING DECISION**                  | two chat UIs, two Sherlock UIs over same state                                                                                                                |
+| `command` + `briefs` surfaces                                              | **ORPHANED (zombie rooms)**           | mounted, routable, zero entry points                                                                                                                          |
+| intake-digest, entity-resolve, cadence-sweep                               | **DEAD/ORPHANED**                     | no cron in DB, no client caller                                                                                                                               |
+| AwarenessHUD trust tiers                                                   | **PARTIAL**                           | keyword string-matching source names; Sherlock full-mode is the only structural inference-vs-fact label                                                       |
+| Cross-model fallback                                                       | **GAP**                               | one gateway outage kills both brains; SERPAPI_KEY missing degrades silently                                                                                   |
+
 
 ## D. ONE-STATE / FOUR-VIEWS AUDIT
 
@@ -144,17 +146,25 @@ Browser-bound/blockers: web-push stack (VAPID) will not work in a WebView — FC
 9. **Stale-data labels outside boot.** Add a `reachNow()`-driven stale/offline chip to Work, Receipts, Documents, Echo (extend `state-views`, import `ErrorState` in AuditSurface). Why: doctrine says last-known must not masquerade as current. Acceptance: airplane-mode walkthrough shows a label in all four rooms. Risk: low.
 
 ### Phase 2 — Comprehension & interaction clarity
+
 Plain-English Receipts search; label maps for executor kinds; resolve Inbox vs Memory (one landing, one search — declare the split in code, not comments); one Sherlock door (overlay) with the surface as its full-page view or vice versa; fix the "nothing yet"/DriveFindPanel contradiction; document the two linking graphs' boundary in AGENTS.md; update stale audit/consolidation docs and roadmap.
 
 ### Phase 3 — Offline / resilience hardening
+
 App-shell precache + runtime cache in sw.js (versioned); persisted React Query cache for read-mostly rooms; offline write queue for captures/notes/incidents with "Saved on device — will sync" receipts distinguishing created-offline vs synced; reconnect reconciliation ("Back online — 3 things changed"), never a stale-notification blast; offline Today posture (NOW/NEXT/SAVED/EMERGENCY from cached truth with freshness labels). Extend, never parallel-build: one queue module, one cache strategy, one reach hook.
 
 ### Phase 4 — World model / literacy / source expansion (only proven gaps)
+
 Structural source-tier tags (replace AwarenessHUD keyword matching); extend `grounding.sources` beyond files to web/calendar provenance; token-budgeted context assembly with thread compaction; cross-model fallback (Astra→Gemini) with honest degraded voice; SERPAPI-missing surfaced distinctly; low-yield drift sweep tuned or its cadence made adaptive. Human-literacy features only after these.
 
 ### Phase 5 — Android field capabilities
+
 Wire `@capacitor/push-notifications` (FCM) into `push_subscriptions`; `@capacitor/geolocation` behind the existing location-source abstraction; preferences bridge for localStorage; keep the remote-URL shell; local-brain-survival/cloud-brain-depth split stays doctrine.
 
 ---
 
 **STOP.** No implementation until Maxwell approves a phase. Suggested first approval: Phase 1 items 1–9 as one build batch (all small, all verified-diagnosed, zero new surfaces).
+
+&nbsp;
+
+"I approve this start only with phase one for now" because we need to know that everything is good to go before we continue on to the other phases and I do need you to inspect it afterwards after phase 1 implementation
