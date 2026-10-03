@@ -18,9 +18,10 @@ type GroundReading = {
   condition: string;
 };
 
-export function GroundsWeatherStrip({ className }: { className?: string }) {
+/** Every genuine fix's current sky — shared by Today's strip and the Work
+    weather shelf so both read the same grounds the same way. */
+export function useGroundsWeather(): GroundReading[] {
   const [grounds, setGrounds] = useState<GroundReading[]>([]);
-  const [tempUnit] = useTempUnit();
 
   useEffect(() => {
     let alive = true;
@@ -35,6 +36,13 @@ export function GroundsWeatherStrip({ className }: { className?: string }) {
       alive = false;
     };
   }, []);
+
+  return grounds;
+}
+
+export function GroundsWeatherStrip({ className }: { className?: string }) {
+  const grounds = useGroundsWeather();
+  const [tempUnit] = useTempUnit();
 
   if (grounds.length === 0) return null;
 

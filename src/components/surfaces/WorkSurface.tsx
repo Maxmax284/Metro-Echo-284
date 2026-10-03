@@ -54,6 +54,7 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { useSherlockPending } from "@/hooks/useSherlockPending";
 import { GotSomethingChooser } from "@/components/intake/GotSomethingChooser";
 import { WatchShelf } from "@/components/work/WatchShelf";
+import { WorkWeatherShelf } from "@/components/work/WorkWeatherShelf";
 import { DocumentsStation } from "@/components/work/DocumentsStation";
 import { MailShelf } from "@/components/work/MailShelf";
 import { DriveFindPanel } from "@/components/work/DriveFindPanel";
@@ -182,6 +183,9 @@ export function WorkSurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => voi
           </div>
           <MailShelf />
           <WeekAgenda onOpenSettings={() => { window.location.href = "/settings"; }} />
+          {/* The grounds' skies sit with what's coming in — meetings and
+              travel read the same sky as Today, same chips, same station. */}
+          <WorkWeatherShelf />
         </section>
 
         <ShelfHeading title="In motion" line="Jobs, promises and anything waiting on your yes." />

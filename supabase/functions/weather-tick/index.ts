@@ -17,28 +17,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "../_shared/http.ts";
 import { fetchMeteo, looksLikeWeather, weatherText } from "../_shared/weatherRead.ts";
+import { resolveWatchPlace } from "../_shared/watchPlace.ts";
 
-const LIVE_FIX_SOURCES = ["device", "map_picker", "manual_search", "nearby_suggestion", "manual_fix"];
 const OPEN_STATES = ["watching", "on_it", "needs_you", "waiting"];
 const ROLL_FORWARD_DAYS = 14;
-
-type PlaceRow = {
-  id: string;
-  label: string | null;
-  country: string | null;
-  geo: Record<string, unknown> | null;
-  category: string | null;
-};
-
-/** Name candidates for a place label — same drift tolerance as the station
-    page ("Ko Samui" vs "Koh Samui"): full first segment plus the distinctive
-    last word when it is long enough to be safe. */
-function nameCandidates(label: string): string[] {
-  const segment = label.split(",")[0].trim();
-  const words = segment.split(/\s+/).filter(Boolean);
-  const lastWord = words[words.length - 1] ?? segment;
-  return [...new Set([segment, ...(lastWord.length >= 4 ? [lastWord] : [])])];
-}
 
 /** The live block of a sitrep, assembled exactly the way watch-sweep does it:
     Now line, Today line, then the checked-when header. */
@@ -63,13 +45,15 @@ Deno.serve(async (req: Request) => {
 
     const { data: watchRows, error } = await admin
       .from("watches")
-      .select("id,user_id,organization_id,goal,last_read")
+      .select("id,user_id,organization_id,goal,last_read,success_when")
       .eq("kind", "web_search")
       .in("state", OPEN_STATES)
       .limit(100);
     if (error) return json({ error: error.message }, 500);
 
-    const conditions = (watchRows ?? []).filter((w) => looksLikeWeather(w.goal ?? ""));
+    const conditions = (watchRows ?? []).filter((w) =>
+      looksLikeWeather(`${w.goal ?? ""} ${String((w as { success_when?: { query?: string } }).success_when?.query ?? "")}`)
+    );
     const now = new Date();
     const rollTo = new Date(now.getTime() + ROLL_FORWARD_DAYS * 86400_000).toISOString();
 
@@ -78,46 +62,26 @@ Deno.serve(async (req: Request) => {
     const skipped: Array<{ id: string; why: string }> = [];
 
     for (const watch of conditions.slice(0, 50)) {
-      /* Which stamped ground is this watch about? Name-match against the
-         person's genuine fixes — never a saved reading place. */
-      const { data: places } = await admin
-        .from("awareness_places")
-        .select("id,label,country,geo,category")
-        .eq("user_id", watch.user_id)
-        .filter("geo->>source", "in", `(${LIVE_FIX_SOURCES.map((s) => `"${s}"`).join(",")})`)
-        .order("stamped_at", { ascending: false, nullsFirst: false })
-        .order("updated_at", { ascending: false })
-        .limit(10);
-
-      const goal = (watch.goal ?? "").toLowerCase();
-      const match = ((places ?? []) as PlaceRow[]).find((p) => {
-        if (p.category === "reading") return false;
-        const label = String(p.label ?? "");
-        if (!label) return false;
-        return nameCandidates(label).some((c) => goal.includes(c.toLowerCase()));
-      });
-
-      if (!match) {
-        skipped.push({ id: watch.id, why: "no_stamped_ground_match" });
-        continue;
-      }
-      const lat = Number(match.geo?.lat);
-      const lon = Number(match.geo?.lon ?? match.geo?.lng);
-      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-        skipped.push({ id: watch.id, why: "ground_has_no_coordinates" });
+      /* Which place is this watch about? Stamped ground first (that match
+         carries the lock-in), then any named place on the board, then the
+         watch's own words geocoded — every conditions watch gets its own
+         sky, not just the home ground's. */
+      const watchText_ = `${watch.goal ?? ""} ${String(
+        (watch as { success_when?: { query?: string } }).success_when?.query ?? "",
+      )}`;
+      const place = await resolveWatchPlace(admin, watch.user_id, watchText_);
+      if (!place) {
+        skipped.push({ id: watch.id, why: "no_place_resolved" });
         continue;
       }
 
-      const meteo = await fetchMeteo(lat, lon).catch(() => null);
+      const meteo = await fetchMeteo(place.lat, place.lon).catch(() => null);
       if (!meteo?.current) {
         skipped.push({ id: watch.id, why: "telemetry_down" });
         continue;
       }
 
-      const telemetry = weatherText(
-        { label: String(match.label), note: "your stamped ground", lat, lon },
-        meteo,
-      );
+      const telemetry = weatherText(place, meteo);
       const live = liveBlock(telemetry);
 
       /* Preserve the advisory tail exactly; only the instrument block moves. */
@@ -126,12 +90,16 @@ Deno.serve(async (req: Request) => {
       const advisory = advisorySplit.length > 1 ? advisorySplit.slice(1).join("\nAdvisory: ").trim() : "";
       const lastRead = (advisory ? `${live}\nAdvisory: ${advisory}` : live).slice(0, 900);
 
+      /* The lock-in belongs to genuine fixes only: a watch reading the sky
+         over a stamped ground rolls its stop forward; a watch about any
+         other place keeps its natural lifespan — a temporary place never
+         becomes permanent memory. */
       const { error: upErr } = await admin
         .from("watches")
         .update({
           last_read: lastRead,
           telemetry_at: now.toISOString(),
-          stop_at: rollTo,
+          ...(place.isStampedGround ? { stop_at: rollTo } : {}),
         })
         .eq("id", watch.id);
       if (upErr) {
@@ -139,7 +107,7 @@ Deno.serve(async (req: Request) => {
         continue;
       }
       refreshed += 1;
-      locked += 1;
+      if (place.isStampedGround) locked += 1;
     }
 
     return json({ ok: true, conditions: conditions.length, refreshed, locked, skipped });

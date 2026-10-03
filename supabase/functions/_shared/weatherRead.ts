@@ -63,7 +63,7 @@ export async function activeGround(sb: SupabaseClient, _scope: ScopeArgs): Promi
 
 /** "What's the weather" family — the trigger for the telemetry read. */
 const WEATHER_WORDS =
-  /\b(weather|forecast|raining|rain|storm|thunderstorm|sunny|cloud(y|s)|overcast|temperature|how hot|how cold|humid|wind(y)?|sea (state|conditions)|ferry|ferries|speedboat|beach day|swim|outside like|what'?s it like out)\b/i;
+  /\b(weather|forecast|raining|rain|storm|thunderstorm|sunny|cloud(y|s)|overcast|temperature|how hot|how cold|humid|wind(y)?|flood(ing|s)?|monsoon|sea (state|conditions)|ferry|ferries|speedboat|beach day|swim|outside like|what'?s it like out)\b/i;
 
 export function looksLikeWeather(text: string): boolean {
   return WEATHER_WORDS.test(text ?? "");
