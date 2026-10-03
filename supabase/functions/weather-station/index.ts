@@ -208,6 +208,7 @@ Deno.serve(async (req: Request) => {
 
     return jsonResponse({
       place: {
+        id: ground.id,
         label: ground.label,
         country: ground.country,
         region: ground.region,
