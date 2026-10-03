@@ -597,6 +597,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           a glance, not the place desk: tapping a pin never moves your fix. */}
       <TodayLiveMap onOpenPlaces={() => onNavigate("awareness")} />
 
+      {/* Every stamped ground's sky, one chip each — tap through to that
+          ground's station. Nothing when no ground is stamped. */}
+      <GroundsWeatherStrip className="mt-2" />
+
       {/* Travelling today: the one sentence about where to walk next, the same
           wording as the flight card. Nothing when no flight is close. */}
       <NextMoveLane onOpen={() => onNavigate("schedule")} />
