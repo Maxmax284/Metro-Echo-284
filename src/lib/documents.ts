@@ -5,6 +5,8 @@
 // Tables touched: documents, document_versions, document_reviews,
 // document_risks, document_obligations. See migration for schema.
 import { supabase } from "@/integrations/supabase/client";
+import { DOCUMENT_TEMPLATES } from "./documentTemplates";
+import { compactCatalog, type IntakeParse } from "../../supabase/functions/_shared/intakeParse";
 
 export const DOCUMENT_KINDS = [
   "nda", "sow", "service", "lease", "partnership",
@@ -352,6 +354,21 @@ export async function createDraftDocument(opts: {
     payload: { template_key: opts.templateKey, project_id: opts.projectId ?? null },
   });
   return data as DocumentRow;
+}
+
+/**
+ * One-breath intake: sort a spoken or typed brief into a template's fields.
+ * The model only proposes the sort; the person reads it back in the dialog
+ * and taps Draft — nothing in this path creates or drafts a document.
+ */
+export async function parseIntakeBrief(
+  brief: string,
+): Promise<{ ok: boolean; parsed?: IntakeParse; error?: string }> {
+  const { data, error } = await supabase.functions.invoke("documents-intake", {
+    body: { brief, catalog: compactCatalog(DOCUMENT_TEMPLATES) },
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: !!data?.ok, parsed: data?.parsed as IntakeParse | undefined, error: data?.error };
 }
 
 export async function runDraft(opts: {

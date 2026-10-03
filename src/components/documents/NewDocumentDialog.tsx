@@ -16,14 +16,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, FilePlus2, Loader2, NotebookPen, Sparkles } from "lucide-react";
+import { AudioLines, ChevronLeft, FilePlus2, Loader2, NotebookPen, Sparkles } from "lucide-react";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DOCUMENT_TEMPLATES, DRAFT_TONES, getTemplate,
   type DocumentTemplate, type DraftTone, type TemplateField,
 } from "@/lib/documentTemplates";
-import { createDraftDocument, runDraft } from "@/lib/documents";
+import { createDraftDocument, parseIntakeBrief, runDraft } from "@/lib/documents";
 import { DictateButton } from "@/components/ui/dictate-button";
 import { MeetingNotesDraftForm } from "@/components/documents/MeetingNotesDraftForm";
 
@@ -44,6 +44,9 @@ export function NewDocumentDialog({
   const [tone, setTone] = useState<DraftTone>("warm");
   const [title, setTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  /** One-breath intake: the whole brief in one box, sorted into fields on tap. */
+  const [brief, setBrief] = useState("");
+  const [parsing, setParsing] = useState(false);
   /** Guided intake asks one thing at a time; "all" shows the classic form. */
   const [mode, setMode] = useState<"guided" | "all">("guided");
   const [step, setStep] = useState(0);
@@ -84,6 +87,38 @@ export function NewDocumentDialog({
     setMode("guided");
     setStep(0);
     setSourceMode("templates");
+    setBrief("");
+    setParsing(false);
+  }
+
+  /**
+   * One-breath intake: the person says the whole brief, Echo sorts it into a
+   * template and its fields, and the dialog opens on the read-back step.
+   * Nothing is created and nothing drafts until the person taps Draft.
+   */
+  async function handleSortIntoFields() {
+    const text = brief.trim();
+    if (text.length < 20 || parsing) return;
+    setParsing(true);
+    const res = await parseIntakeBrief(text);
+    setParsing(false);
+    const parsed = res.ok ? res.parsed : undefined;
+    const chosen = parsed ? getTemplate(parsed.template_key) : undefined;
+    if (!parsed || !chosen) {
+      if (res.error === "rate_limited") toast.error("Over rate limit. Try again in a minute.");
+      else if (res.error === "budget_exceeded") toast.error("AI credits exhausted. Add credits in Settings → Workspace → Usage.");
+      else if (res.error === "no_match" || parsed) toast.error("Echo couldn't place that brief — pick a template yourself below.");
+      else toast.error("Echo couldn't sort that — try again, or pick a template below.");
+      return;
+    }
+    setTemplateKey(chosen.key);
+    setTitle(parsed.title);
+    setInputs(parsed.inputs);
+    if (parsed.tone) setTone(parsed.tone);
+    setMode("guided");
+    // steps = title + fields + tone + read-back — land on the read-back.
+    setStep(1 + chosen.fields.length + 1);
+    toast.success("Sorted — read it back before Echo drafts.");
   }
 
   function handleClose(next: boolean) {
@@ -179,7 +214,42 @@ export function NewDocumentDialog({
           />
         ) : !template ? (
           <ul className="mt-2 space-y-2">
+            <li className="vanta-inset px-3 py-2.5">
+              <div className="flex items-center gap-1.5">
+                <AudioLines className="h-3.5 w-3.5 text-primary" />
+                <p className="text-xs font-medium">Say it in one breath</p>
+              </div>
+              <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                Talk or type the whole brief — parties, money, dates, tone. Echo sorts it into the right template and fields, then reads it back. You still tap Draft.
+              </p>
+              <textarea
+                value={brief}
+                onChange={(e) => setBrief(e.target.value)}
+                rows={3}
+                placeholder="SOW for Kru Glitch — 3-month trial, 20 hours a week, $2,500 a month, 48-hour termination…"
+                className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+              <div className="mt-1.5 flex items-center gap-2">
+                <DictateButton
+                  value={brief}
+                  onChange={setBrief}
+                  label="Dictate the brief"
+                />
+                <button
+                  type="button"
+                  disabled={brief.trim().length < 20 || parsing}
+                  onClick={() => void handleSortIntoFields()}
+                  className="inline-flex min-h-[40px] flex-1 items-center justify-center gap-2 rounded-md bg-primary/10 px-3 text-sm font-medium text-primary ring-1 ring-primary/30 transition-colors hover:bg-primary/15 disabled:opacity-40"
+                >
+                  {parsing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {parsing ? "Sorting…" : "Sort it into fields"}
+                </button>
+              </div>
+            </li>
             <li>
+              <p className="pb-0.5 pt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/80">
+                …or start from
+              </p>
               <button
                 type="button"
                 onClick={() => setSourceMode("meeting_notes")}

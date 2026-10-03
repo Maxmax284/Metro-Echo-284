@@ -9,8 +9,11 @@
 - [x] WatchDispatchSheet: live weather card (temp/feels/rain/instruments-checked) on weather watches
 - [x] Telegram: suggested_summary persisted on voice/doc reads + photo looks; Arrivals + Captures show words not filenames
 
+## Done this batch (verified live at 384px)
+- [x] Documents one-breath intake — say/type the whole brief in NewDocumentDialog; documents-intake (Gemini flash, forced tool call) sorts it into template + fields; `intakeParse.ts` sieve drops invented keys, bad dates, unmatched selects; lands on the read-back — nothing drafts until the tap; `document.intake_parsed` receipt per sort
+
 ## Next
-- [ ] Documents station intake polish (voice revise, multi-turn)
+- [ ] Telegram capture bridge (the front door — voice/photo/text → draft card in Today)
 
 ## Parked
 - Phase 7 ecosystem inlets (GroundStay/CampCore/Fenrir) — shelved per Maxwell
