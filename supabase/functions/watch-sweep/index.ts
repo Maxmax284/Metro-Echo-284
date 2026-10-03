@@ -289,11 +289,13 @@ Deno.serve(async (req: Request) => {
             const advisory = stripCitations(rawVerdict);
             let verdict = advisory;
             if (telemetry) {
-              /* Telemetry lines 1–3 are the header, the Now line and the Today
-                 line — the instruments. The advisory rides after them, clearly
-                 marked, so forecast and news can never blur together. */
-              const live = telemetry.split("\n").slice(0, 3).join(" ").trim();
-              verdict = advisory ? `${live} Advisory: ${advisory}` : live;
+              /* The Now line leads — that is what the Solari board and the
+                 dispatch slip should read first. The Today line and the
+                 checked-when header follow, then the advisory on its own line,
+                 clearly marked, so forecast and news can never blur. */
+              const tl = telemetry.split("\n");
+              const live = [tl[1], tl[2], tl[0]].filter(Boolean).join("\n").trim();
+              verdict = advisory ? `${live}\nAdvisory: ${advisory}` : live;
             }
             if (verdict) lastRead = verdict.slice(0, 900);
             else if (!row.last_read && hits[0]?.title) lastRead = hits[0].title.slice(0, 140);
