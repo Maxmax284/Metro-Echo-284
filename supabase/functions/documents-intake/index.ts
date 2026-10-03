@@ -32,6 +32,7 @@ const Body = z.object({
 
 const SYSTEM = `You sort one brief into a business-document template. Extraction, not writing.
 - Pick the single best-fitting template from the catalog the user provides.
+- When the brief names a document type or template (NDA, SOW, statement of work, service agreement, payment agreement, letter), honor that choice.
 - Fill only the fields the brief actually states. Never invent parties, dates, money, terms, or names.
 - Use the exact field keys from the chosen template's catalog. Omit anything not stated — the person fills gaps themselves.
 - For select fields, answer with the option's value, not its label.
