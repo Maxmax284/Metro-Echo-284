@@ -150,6 +150,30 @@ export default function WeatherStation() {
         <TempUnitToggle className="mt-4" />
       </div>
 
+      {/* Ground switcher — every stamped place, one tap to its sky. */}
+      {grounds.length > 1 && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
+          {grounds.map((g) => {
+            const active = g.id === data.place.id;
+            return (
+              <button
+                key={g.id}
+                type="button"
+                onClick={() => setSearchParams(active ? {} : { place: g.id })}
+                className={cn(
+                  "shrink-0 rounded-full px-2.5 py-1.5 text-[11px] ring-1 transition-colors",
+                  active
+                    ? "bg-primary/15 text-primary ring-primary/40"
+                    : "text-muted-foreground ring-border/60 hover:text-foreground",
+                )}
+              >
+                {g.label.split(",")[0]} · {formatTemp(g.tempC, tempUnit)}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* The board — current sky in split-flap. */}
       <SolariBoard
         text={`${current.condition} ${formatTemp(current.tempC, tempUnit)}`}
