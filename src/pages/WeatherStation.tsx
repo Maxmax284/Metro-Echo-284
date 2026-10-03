@@ -8,7 +8,7 @@
 //   - "Check now" force-sweeps the local watch so the advisory strip is fresh
 //     when you asked, not when the cadence felt like it.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, CloudRain, Loader2, RefreshCw, Waves, Wind } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,8 +23,10 @@ import { cn } from "@/lib/utils";
 
 type StationHour = { t: string; tempC: number; precipPct: number; code: number; windKmh: number };
 
+type GroundChip = { id: string; label: string; tempC: number; condition: string };
+
 type StationData = {
-  place: { label: string; country: string | null; lat: number; lon: number; stampedAt: string | null };
+  place: { id: string; label: string; country: string | null; lat: number; lon: number; stampedAt: string | null };
   checkedLocal: string;
   current: {
     tempC: number; feelsC: number; humidityPct: number; condition: string;
