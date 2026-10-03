@@ -10,9 +10,26 @@ import { unauthorized } from "../_shared/errors.ts";
 import { corsHeaders, jsonResponse, preflight } from "../_shared/http.ts";
 import { activeGround, knots, marineLine, rainWindows } from "../_shared/weatherRead.ts";
 
+/* The station reads any genuine fix the person has stamped, not just the one
+   active ground — a saved-reading row still never qualifies. */
+const LIVE_FIX_SOURCES = ["device", "map_picker", "manual_search", "nearby_suggestion", "manual_fix"];
+
 const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 function compass(deg: number): string {
   return COMPASS[Math.round((((deg % 360) + 360) % 360) / 45) % 8];
+}
+
+/** All of the person's genuine grounds, freshest stamp first. */
+async function stampedGrounds(admin: ReturnType<typeof createClient>, userId: string) {
+  const { data } = await admin
+    .from("awareness_places")
+    .select("id,label,country,geo,category,stamped_at,updated_at")
+    .eq("user_id", userId)
+    .filter("geo->>source", "in", `(${LIVE_FIX_SOURCES.map((s) => `"${s}"`).join(",")})`)
+    .order("stamped_at", { ascending: false, nullsFirst: false })
+    .order("updated_at", { ascending: false })
+    .limit(8);
+  return ((data ?? []) as Array<Record<string, unknown>>).filter((p) => p.category !== "reading");
 }
 
 /** WMO code → plain words (mirror of weatherRead's codeLabel, kept local so
