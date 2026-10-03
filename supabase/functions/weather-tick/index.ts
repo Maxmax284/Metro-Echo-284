@@ -18,6 +18,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "../_shared/http.ts";
 import { fetchMeteo, looksLikeWeather, weatherText } from "../_shared/weatherRead.ts";
 import { resolveWatchPlace } from "../_shared/watchPlace.ts";
+import { writeAuditEvent } from "../_shared/auditEvent.ts";
 
 const OPEN_STATES = ["watching", "on_it", "needs_you", "waiting"];
 const ROLL_FORWARD_DAYS = 14;
@@ -104,10 +105,37 @@ Deno.serve(async (req: Request) => {
         .eq("id", watch.id);
       if (upErr) {
         skipped.push({ id: watch.id, why: `update_${upErr.message}`.slice(0, 120) });
+        /* A failed instrument write says so out loud — never a silent skip. */
+        await writeAuditEvent(admin as never, {
+          actor: watch.user_id,
+          organizationId: watch.organization_id ?? null,
+          entityType: "watch",
+          entityId: watch.id,
+          event: "watch.tick_failed",
+          source: "weather-tick",
+          success: false,
+          metadata: { goal: watch.goal, error: upErr.message.slice(0, 200) },
+        });
         continue;
       }
       refreshed += 1;
       if (place.isStampedGround) locked += 1;
+      /* The sky moving over a watched place is a state change — it leaves a
+         receipt, same as every quiet sweep check does. */
+      await writeAuditEvent(admin as never, {
+        actor: watch.user_id,
+        organizationId: watch.organization_id ?? null,
+        entityType: "watch",
+        entityId: watch.id,
+        event: "watch.sky_refreshed",
+        source: "weather-tick",
+        success: true,
+        metadata: {
+          goal: watch.goal,
+          place: place.label,
+          locked: place.isStampedGround === true,
+        },
+      });
     }
 
     return json({ ok: true, conditions: conditions.length, refreshed, locked, skipped });
