@@ -21,6 +21,7 @@ function watch(p: Partial<Watch>): Watch {
     attempts: 4,
     outcome: null,
     last_read: null,
+    telemetry_at: null,
     created_at: new Date(NOW - 86_400_000).toISOString(),
     updated_at: new Date(NOW - 30 * 60_000).toISOString(),
     ...p,
