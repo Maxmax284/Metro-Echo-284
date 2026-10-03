@@ -10,7 +10,9 @@
  * Shared by Echo and Telegram through echoReads.ts, so both surfaces read the
  * same sky the same way.
  */
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
+// Structural client type: keeps this module importable from both Deno (edge)
+// and the Vite/vitest typecheck, which can't resolve npm: specifiers.
+type SupabaseClient = { from: (table: string) => any };
 
 export type ScopeArgs = { userId: string; orgId: string | null };
 
