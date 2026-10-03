@@ -53,3 +53,24 @@ verify_jwt = true
 
 [functions.gmail-sweep]
 verify_jwt = false
+
+[functions.calendar-sync]
+verify_jwt = false
+
+[functions.awareness-decay]
+verify_jwt = false
+
+[functions.awareness-drift-sweep]
+verify_jwt = false
+
+[functions.sherlock-watch]
+verify_jwt = false
+
+[functions.sherlock-digest]
+verify_jwt = false
+
+[functions.weather-tick]
+verify_jwt = false
+
+[functions.journey-watch]
+verify_jwt = false
