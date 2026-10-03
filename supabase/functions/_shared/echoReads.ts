@@ -36,6 +36,7 @@ import { bodyCompare, bodyRead } from "./bodyRead.ts";
 import { reachWords } from "./reachBody.ts";
 import { careRead } from "./careRead.ts";
 import { flightRead } from "./flightRead.ts";
+import { weatherRead } from "./weatherRead.ts";
 
 /** Every read Echo can perform on the person's own desks. */
 export const ECHO_READ_NAMES = [
@@ -61,6 +62,7 @@ export const ECHO_READ_NAMES = [
   "lease_checks",
   "body_compare",
   "how_echo_reaches_you",
+  "weather_read",
 ] as const;
 
 export type EchoReadName = (typeof ECHO_READ_NAMES)[number];
@@ -93,6 +95,7 @@ export const READ_SOURCE: Record<EchoReadName, string> = {
   local_customs: "kept notes on local custom, with the day they were checked",
   cost_of_living: "the housing figures you gave, added up as real monthly cost",
   lease_checks: "the questions a lease has to answer before you sign",
+  weather_read: "live model weather for your exact stamped coordinates",
 };
 
 /**
