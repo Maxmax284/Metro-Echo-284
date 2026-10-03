@@ -14,3 +14,5 @@
 
 ## Parked
 - Phase 7 ecosystem inlets (GroundStay/CampCore/Fenrir) — shelved per Maxwell
+- [x] Hourly auto-sweep for ALL conditions watches, not just Samui — resolveWatchPlace ladder (stamped ground → any named board place with coords → Open-Meteo geocode cached in api_cache); Bangkok flooding watch revived and now leads with Bangkok's own sky (32°C thunderstorm, "a place on your board"); flood(ing)?/monsoon added to WEATHER_WORDS both sides; Bangkok watch's poisoned essay query replaced with tight keywords
+- [x] Weather station shelf on Work ("Skies on your grounds" — same grounds chips + °C/°F toggle as Today, teaching line, link to /weather) verified live at 384px
