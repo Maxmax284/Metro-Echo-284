@@ -172,7 +172,7 @@ function dayWords(localIso: string): string {
   return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
 }
 
-type MeteoData = {
+export type MeteoData = {
   current: {
     time: string;
     temperature_2m: number;
