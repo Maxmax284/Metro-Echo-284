@@ -45,6 +45,14 @@
 - [x] Client placeholder fail-safe — useAskTurn awaits intent jobs; the pulse lifts when the handler's answer lands below, and a turn that returns nothing says so plainly ("The lookup didn't come back…" / "Still working on that…") instead of spinning forever.
 - [x] Live-verified at 384px: page-check flow answers with provenance, no stuck pulse; watch thread answers from the record; Koh Samui lookup streams a sourced sitrep. Suite 2,362 green (+2 known Telegram date quirks); vanta-converse deployed.
 
+## Weather pipeline (ground-first local conditions)
+- [x] `_shared/weatherRead.ts` — weather_read read tool: resolves the stamped live ground (LIVE_FIX_SOURCES, stamp outranks, reading rows excluded), Open-Meteo current + hourly rain windows + daily range, marine/ferry line, honest "forecast data, not observation" framing.
+- [x] Weather questions never Google — looksLikeWeather suppresses the research route and force-runs weather_read when the pre-pass misses; pure weather asks stay telemetry, not research.
+- [x] Ambient ground block in vanta-converse — active ground + matching local watch sitreps ride every turn, not just radar threads; answer spine pinned (place + local check-time, Now, day's timing, sea line).
+- [x] Sitrep freshness law — sitrep.ts refuses warnings dated more than a few days old as current; "nothing current on the record" is a valid sitrep.
+- [x] Koh Samui 6-hour watch live (9e66c022, watching, cadence 360 min) — first sweep honestly reported the stale May 26 warning instead of dressing it as news.
+- [x] Live-verified: weather ask answers "Koh Samui — checked 09:15 local, overcast 29°C feels 35, rain windows named, no invented dry window"; radar card + dispatch slip render sitrep, sweep log receipts, Check now/Pause/Stop at 384px. Suite 2,372 green (+2 known Telegram date quirks); vanta-converse, telegram-webhook, watch-sweep, web-look deployed.
+
 ## Parked tracks
 - [ ] Telegram capture bridge — test on Maxwell first (Vanta sequencing), then Ground Truth Hub, then CampCore.
 - [ ] Documents roadmap — voice revise, multi-turn intake; parked items stay parked.
