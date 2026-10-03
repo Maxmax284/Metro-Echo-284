@@ -11,6 +11,7 @@ import { useIsOwner } from "@/hooks/useIsOwner";
 import { useSystemControls } from "@/hooks/useSystemControls";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { formatTemp, useTempUnit } from "@/lib/tempUnit";
+import { TempUnitToggle } from "@/components/awareness/TempUnitToggle";
 import { SignalCard } from "@/components/awareness/SignalCard";
 import { useSignalRoute } from "@/lib/useSignalRoute";
 
@@ -816,7 +817,10 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
 
             {weather && (
               <div className="rounded-lg border border-border/60 bg-surface-elevated/40 p-3">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Weather</div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Weather</span>
+                  <TempUnitToggle />
+                </div>
                 <div className="mt-1">
                   {weather.tempC != null ? formatTemp(weather.tempC, tempUnit) : "—"}
                   {weather.condition ? ` · ${weather.condition}` : ""}
