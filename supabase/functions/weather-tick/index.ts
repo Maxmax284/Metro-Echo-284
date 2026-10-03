@@ -90,12 +90,16 @@ Deno.serve(async (req: Request) => {
       const advisory = advisorySplit.length > 1 ? advisorySplit.slice(1).join("\nAdvisory: ").trim() : "";
       const lastRead = (advisory ? `${live}\nAdvisory: ${advisory}` : live).slice(0, 900);
 
+      /* The lock-in belongs to genuine fixes only: a watch reading the sky
+         over a stamped ground rolls its stop forward; a watch about any
+         other place keeps its natural lifespan — a temporary place never
+         becomes permanent memory. */
       const { error: upErr } = await admin
         .from("watches")
         .update({
           last_read: lastRead,
           telemetry_at: now.toISOString(),
-          stop_at: rollTo,
+          ...(place.isStampedGround ? { stop_at: rollTo } : {}),
         })
         .eq("id", watch.id);
       if (upErr) {
@@ -103,7 +107,7 @@ Deno.serve(async (req: Request) => {
         continue;
       }
       refreshed += 1;
-      locked += 1;
+      if (place.isStampedGround) locked += 1;
     }
 
     return json({ ok: true, conditions: conditions.length, refreshed, locked, skipped });
