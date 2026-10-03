@@ -24,7 +24,8 @@ import { checkPage, checkSearch } from "../_shared/webLook.ts";
 import { serpSearch } from "../_shared/serpSearch.ts";
 import { firstLine, sitrepFrom, stripCitations } from "../_shared/sitrep.ts";
 import { RESEARCH_VOICE } from "../_shared/vantaVoice.ts";
-import { looksLikeWeather, weatherRead } from "../_shared/weatherRead.ts";
+import { looksLikeWeather } from "../_shared/weatherRead.ts";
+import { watchTelemetry } from "../_shared/watchPlace.ts";
 
 Deno.serve(async (req: Request) => {
   const pre = preflight(req);
@@ -272,10 +273,14 @@ Deno.serve(async (req: Request) => {
             const conditionsWatch = looksLikeWeather(`${row.goal} ${query}`);
             let telemetry = "";
             if (conditionsWatch) {
-              telemetry = await weatherRead(
+              /* The watch reads the sky over the place it names — a Bangkok
+                 flooding watch gets Bangkok's sky even when you're standing
+                 on Ko Samui. Only a watch about nowhere in particular falls
+                 back to your active stamped ground. */
+              telemetry = await watchTelemetry(
                 admin as never,
                 { userId: row.user_id, orgId: row.organization_id ?? null },
-                {},
+                `${row.goal} ${query}`,
               ).catch(() => "");
             }
             /* A failed synthesis never blocks the check: fall back to the raw
