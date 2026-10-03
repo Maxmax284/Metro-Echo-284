@@ -46,14 +46,30 @@ type StationData = {
 const hhmm = (localIso: string) => localIso.slice(11, 16);
 
 export default function WeatherStation() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const placeId = searchParams.get("place");
   const [data, setData] = useState<StationData | null>(null);
+  const [grounds, setGrounds] = useState<GroundChip[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sweeping, setSweeping] = useState(false);
   const [tempUnit] = useTempUnit();
 
+  /* Every stamped ground gets a chip — the station reads any ground you have
+     stood on, not only the active one. One call, comma-separated upstream. */
+  useEffect(() => {
+    void (async () => {
+      const { data: g } = await supabase.functions.invoke("weather-station", { body: { mode: "grounds" } });
+      const list = (g as { grounds?: GroundChip[] } | null)?.grounds;
+      if (Array.isArray(list)) setGrounds(list);
+    })();
+  }, []);
+
   const load = useCallback(async () => {
-    const { data: d, error: e } = await supabase.functions.invoke("weather-station");
+    const { data: d, error: e } = await supabase.functions.invoke(
+      "weather-station",
+      placeId ? { body: { place_id: placeId } } : undefined,
+    );
     if (e) {
       setError("The station could not be reached just now.");
     } else if ((d as { error?: string })?.error === "no_ground") {
@@ -65,9 +81,9 @@ export default function WeatherStation() {
       setData(d as StationData);
     }
     setLoading(false);
-  }, []);
+  }, [placeId]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { setLoading(true); void load(); }, [load]);
 
   const checkNow = useCallback(async () => {
     if (!data?.watch || sweeping) return;
