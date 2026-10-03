@@ -196,7 +196,7 @@ Deno.serve(async (req: Request) => {
     const candidates = [...new Set([segment, ...(lastWord.length >= 4 ? [lastWord] : [])])];
     const { data: watchRows } = await admin
       .from("watches")
-      .select("id,goal,state,last_read,last_check_at,next_check_at")
+      .select("id,goal,state,last_read,last_check_at,next_check_at,telemetry_at")
       .eq("user_id", user.id)
       .eq("kind", "web_search")
       .in("state", ["on_it", "watching", "waiting", "needs_you"])
@@ -241,6 +241,7 @@ Deno.serve(async (req: Request) => {
             sitrep: watch.last_read ?? null,
             checkedAt: watch.last_check_at ?? null,
             nextCheckAt: watch.next_check_at ?? null,
+            telemetryAt: (watch.telemetry_at as string | null) ?? null,
           }
         : null,
       generatedAt: new Date().toISOString(),
