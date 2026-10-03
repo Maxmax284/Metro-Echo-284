@@ -24,7 +24,7 @@ export function useWatches(opts: { openOnly?: boolean; limit?: number } = {}) {
       let q = applyScope(
         supabase
           .from("watches")
-          .select("id, goal, kind, subject_id, state, last_check_at, next_check_at, attempts, outcome, last_read, created_at, updated_at") as any,
+          .select("id, goal, kind, subject_id, state, last_check_at, next_check_at, attempts, outcome, last_read, telemetry_at, created_at, updated_at") as any,
       )
         .order("updated_at", { ascending: false })
         .limit(opts.limit ?? 20);

@@ -8,7 +8,7 @@
 //   - "Check now" force-sweeps the local watch so the advisory strip is fresh
 //     when you asked, not when the cadence felt like it.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, CloudRain, Loader2, RefreshCw, Waves, Wind } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,8 +23,10 @@ import { cn } from "@/lib/utils";
 
 type StationHour = { t: string; tempC: number; precipPct: number; code: number; windKmh: number };
 
+type GroundChip = { id: string; label: string; tempC: number; condition: string };
+
 type StationData = {
-  place: { label: string; country: string | null; lat: number; lon: number; stampedAt: string | null };
+  place: { id: string; label: string; country: string | null; lat: number; lon: number; stampedAt: string | null };
   checkedLocal: string;
   current: {
     tempC: number; feelsC: number; humidityPct: number; condition: string;
@@ -44,14 +46,30 @@ type StationData = {
 const hhmm = (localIso: string) => localIso.slice(11, 16);
 
 export default function WeatherStation() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const placeId = searchParams.get("place");
   const [data, setData] = useState<StationData | null>(null);
+  const [grounds, setGrounds] = useState<GroundChip[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sweeping, setSweeping] = useState(false);
   const [tempUnit] = useTempUnit();
 
+  /* Every stamped ground gets a chip — the station reads any ground you have
+     stood on, not only the active one. One call, comma-separated upstream. */
+  useEffect(() => {
+    void (async () => {
+      const { data: g } = await supabase.functions.invoke("weather-station", { body: { mode: "grounds" } });
+      const list = (g as { grounds?: GroundChip[] } | null)?.grounds;
+      if (Array.isArray(list)) setGrounds(list);
+    })();
+  }, []);
+
   const load = useCallback(async () => {
-    const { data: d, error: e } = await supabase.functions.invoke("weather-station");
+    const { data: d, error: e } = await supabase.functions.invoke(
+      "weather-station",
+      placeId ? { body: { place_id: placeId } } : undefined,
+    );
     if (e) {
       setError("The station could not be reached just now.");
     } else if ((d as { error?: string })?.error === "no_ground") {
@@ -63,9 +81,9 @@ export default function WeatherStation() {
       setData(d as StationData);
     }
     setLoading(false);
-  }, []);
+  }, [placeId]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { setLoading(true); void load(); }, [load]);
 
   const checkNow = useCallback(async () => {
     if (!data?.watch || sweeping) return;
@@ -131,6 +149,30 @@ export default function WeatherStation() {
         </div>
         <TempUnitToggle className="mt-4" />
       </div>
+
+      {/* Ground switcher — every stamped place, one tap to its sky. */}
+      {grounds.length > 1 && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
+          {grounds.map((g) => {
+            const active = g.id === data.place.id;
+            return (
+              <button
+                key={g.id}
+                type="button"
+                onClick={() => setSearchParams(active ? {} : { place: g.id })}
+                className={cn(
+                  "shrink-0 rounded-full px-2.5 py-1.5 text-[11px] ring-1 transition-colors",
+                  active
+                    ? "bg-primary/15 text-primary ring-primary/40"
+                    : "text-muted-foreground ring-border/60 hover:text-foreground",
+                )}
+              >
+                {g.label.split(",")[0]} · {formatTemp(g.tempC, tempUnit)}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* The board — current sky in split-flap. */}
       <SolariBoard

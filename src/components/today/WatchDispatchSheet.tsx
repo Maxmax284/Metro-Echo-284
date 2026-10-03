@@ -11,7 +11,7 @@
 // the bottom for when the slip is not enough, prefilled and never sent
 // for you.
 import { useEffect, useState } from "react";
-import { ChevronRight, MessageSquare, Pause, Play, Radio, Square } from "lucide-react";
+import { ChevronRight, CloudSun, MessageSquare, Pause, Play, Radio, Square } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { LoadingState } from "@/components/ui/state-views";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,8 @@ import { useAskContext } from "@/hooks/useAskContext";
 import { vantaToast as toast } from "@/lib/vantaVoice";
 import { humanizeEvent } from "@/lib/plainLabels";
 import { checkWords, debriefPrompt, spanWords } from "@/lib/radar";
+import { looksLikeWeather } from "@/lib/weatherWords";
+import { formatTemp, useTempUnit } from "@/lib/tempUnit";
 import { cn } from "@/lib/utils";
 import {
   CHECKABLE_WATCH_STATES,
@@ -77,6 +79,47 @@ function useSweepLog(watchId: string | null, open: boolean): SweepLog {
   return log;
 }
 
+type StationSky = {
+  tempC: number;
+  feelsC: number;
+  condition: string;
+  rain: string | null;
+} | null;
+
+/** The live sky for a conditions watch — read on open from the same station
+    the /weather page reads, so the slip and the page never disagree. */
+function useStationSky(enabled: boolean, open: boolean): { sky: StationSky; loading: boolean } {
+  const [sky, setSky] = useState<StationSky>(null);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!open || !enabled) return;
+    let alive = true;
+    setLoading(true);
+    void (async () => {
+      const { data } = await supabase.functions.invoke("weather-station");
+      if (!alive) return;
+      const d = data as {
+        current?: { tempC: number; feelsC: number; condition: string };
+        rainWindows?: Array<{ from: string; to: string }>;
+      } | null;
+      if (d?.current) {
+        const w = d.rainWindows?.[0];
+        setSky({
+          tempC: d.current.tempC,
+          feelsC: d.current.feelsC,
+          condition: d.current.condition,
+          rain: w ? `${w.from.slice(11, 16)}–${w.to.slice(11, 16)}` : null,
+        });
+      }
+      setLoading(false);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [open, enabled]);
+  return { sky, loading };
+}
+
 export function WatchDispatchSheet({
   watch,
   open,
@@ -93,6 +136,9 @@ export function WatchDispatchSheet({
   const { openAskWithContext } = useAskContext();
   const [busy, setBusy] = useState<"check" | "pause" | "stop" | null>(null);
   const log = useSweepLog(watch?.id ?? null, open);
+  const weatherWatch = !!watch && looksLikeWeather(watch.goal);
+  const { sky, loading: skyLoading } = useStationSky(weatherWatch, open);
+  const [tempUnit] = useTempUnit();
 
   if (!watch) return null;
   const checkable = (CHECKABLE_WATCH_STATES as string[]).includes(watch.state);
@@ -168,6 +214,36 @@ export function WatchDispatchSheet({
           <div className="mt-3 vanta-inset px-3 py-2">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Top of the board</p>
             <p className="mt-1 text-xs leading-snug text-foreground">{watch.last_read}</p>
+          </div>
+        )}
+
+        {/* The sky card — conditions watches carry the live instruments next
+            to the sitrep, so a month-old advisory never reads as today's sky.
+            Telemetry time is its own receipt, separate from the sweep's. */}
+        {weatherWatch && (
+          <div className="mt-3 vanta-inset px-3 py-2">
+            <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+              <CloudSun className="h-3 w-3" /> Right now, from the instruments
+            </p>
+            {skyLoading ? (
+              <p className="mt-1 text-xs text-muted-foreground">Reading the sky…</p>
+            ) : sky ? (
+              <>
+                <p className="mt-1 text-xs leading-snug text-foreground">
+                  {formatTemp(sky.tempC, tempUnit)}, feels {formatTemp(sky.feelsC, tempUnit)} · {sky.condition}
+                  {sky.rain ? ` · rain ${sky.rain}` : " · no rain window above 50% in 24h"}
+                </p>
+                {watch.telemetry_at && (
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    instruments checked {spanWords(Date.now() - Date.parse(watch.telemetry_at))} ago
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">
+                No instrument read just now — the sitrep above is what is on record.
+              </p>
+            )}
           </div>
         )}
 

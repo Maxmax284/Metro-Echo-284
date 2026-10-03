@@ -74,6 +74,7 @@ import { readArrival } from "@/lib/arrivalRead";
 import { SolariBoard } from "@/components/schedule/SolariBoard";
 import { SolariNumber } from "@/components/ui/solari-number";
 import { TodayLiveMap } from "@/components/today/TodayLiveMap";
+import { GroundsWeatherStrip } from "@/components/today/GroundsWeatherStrip";
 
 
 
@@ -596,6 +597,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
       {/* Where you are, drawn from the same place record the beacon reads. It is
           a glance, not the place desk: tapping a pin never moves your fix. */}
       <TodayLiveMap onOpenPlaces={() => onNavigate("awareness")} />
+
+      {/* Every stamped ground's sky, one chip each — tap through to that
+          ground's station. Nothing when no ground is stamped. */}
+      <GroundsWeatherStrip className="mt-2" />
 
       {/* Travelling today: the one sentence about where to walk next, the same
           wording as the flight card. Nothing when no flight is close. */}

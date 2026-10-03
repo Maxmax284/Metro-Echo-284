@@ -2492,6 +2492,14 @@ Deno.serve(async (req) => {
           confidence: (fileRec as any)?.confidence ?? null,
         });
         const travel = read.ok ? await travelLines(words) : [];
+        /* The crisp card: the words Echo actually read, persisted on the file
+           row so Today and the Inbox show a summary, not a filename like
+           voice-note-12847.ogg. */
+        if (read.ok && words) {
+          await admin.from("ingested_files").update({
+            suggested_summary: readSummaryLine(words, 240),
+          }).eq("id", fileRec.id);
+        }
         reply = read.ok
           ? [
               intent.line,
@@ -2516,6 +2524,7 @@ Deno.serve(async (req) => {
             payload: { source: "telegram", intent: wantIntent, uncertain: look.uncertain },
           });
           await admin.from("ingested_files").update({
+            suggested_summary: look.answer.slice(0, 240),
             metadata: {
               ...(fileRec.metadata as Record<string, unknown> ?? {}),
               looks: [{ intent: wantIntent, answer: look.answer.slice(0, 2000), at: new Date().toISOString() }],

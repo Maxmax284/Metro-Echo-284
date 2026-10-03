@@ -172,7 +172,7 @@ function dayWords(localIso: string): string {
   return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
 }
 
-type MeteoData = {
+export type MeteoData = {
   current: {
     time: string;
     temperature_2m: number;
@@ -192,7 +192,7 @@ type MeteoData = {
   };
 };
 
-async function fetchMeteo(lat: number, lon: number): Promise<MeteoData | null> {
+export async function fetchMeteo(lat: number, lon: number): Promise<MeteoData | null> {
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
     `&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m` +

@@ -52,6 +52,9 @@ export type Watch = {
   outcome: string | null;
   /** The headline Echo actually saw on the last read — the bulletin's top line. */
   last_read: string | null;
+  /** When the hourly instrument pass last re-read the sky numbers (conditions
+      watches only; last_check_at stays the news sweep's time). */
+  telemetry_at: string | null;
   created_at: string;
   updated_at: string;
 };

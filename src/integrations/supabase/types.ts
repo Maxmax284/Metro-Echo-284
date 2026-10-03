@@ -4445,6 +4445,7 @@ export type Database = {
           stop_at: string | null
           subject_id: string | null
           success_when: Json
+          telemetry_at: string | null
           updated_at: string
           user_id: string
         }
@@ -4466,6 +4467,7 @@ export type Database = {
           stop_at?: string | null
           subject_id?: string | null
           success_when?: Json
+          telemetry_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -4487,6 +4489,7 @@ export type Database = {
           stop_at?: string | null
           subject_id?: string | null
           success_when?: Json
+          telemetry_at?: string | null
           updated_at?: string
           user_id?: string
         }

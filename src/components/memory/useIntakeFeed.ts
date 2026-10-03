@@ -11,6 +11,7 @@ type FileRow = {
   note_id: string | null; metadata: any;
   detected_doc_type: string | null; confidence: string | null;
   sensitive: boolean | null; review_status: string | null;
+  suggested_summary: string | null;
 };
 type FieldRow = { id: string; summary: string; note_type: string; created_at: string; confidence: string | null };
 
@@ -41,7 +42,7 @@ export function useIntakeFeed(limit = 60) {
         .order("created_at", { ascending: false })
         .limit(limit),
       applyScope(supabase.from("ingested_files")
-        .select("id, filename, status, source, created_at, note_id, metadata, detected_doc_type, confidence, sensitive, review_status"))
+        .select("id, filename, status, source, created_at, note_id, metadata, detected_doc_type, confidence, sensitive, review_status, suggested_summary"))
         .order("created_at", { ascending: false })
         .limit(limit),
       applyScope(supabase.from("field_notes")
@@ -164,7 +165,9 @@ export function useIntakeFeed(limit = 60) {
       out.push({
         id: `file:${f.id}`,
         source: "file",
-        text: f.filename,
+        /* The words Echo actually read, when there are any — a capture card
+           shows the summary, not voice-note-12847.ogg. */
+        text: (f.suggested_summary as string | null) || f.filename,
         detectedType: detected,
         confidence: (f.confidence as any) ?? meta.confidence ?? null,
         status: statusCopy,
