@@ -100,18 +100,24 @@ Deno.serve(async (req: Request) => {
 
     /* The advisory layer: the newest open web_search watch whose goal names
        this ground. A recorded sitrep with its check time — never blended into
-       the telemetry numbers. */
-    const token = ground.label.split(",")[0].trim();
+       the telemetry numbers. Place names drift between spellings ("Ko Samui"
+       vs "Koh Samui"), so the match tries the full first segment and the
+       distinctive last word of it, and keeps only genuine hits. */
+    const segment = ground.label.split(",")[0].trim();
+    const words = segment.split(/\s+/).filter(Boolean);
+    const lastWord = words[words.length - 1] ?? segment;
+    const candidates = [...new Set([segment, ...(lastWord.length >= 4 ? [lastWord] : [])])];
     const { data: watchRows } = await admin
       .from("watches")
       .select("id,goal,state,last_read,last_check_at,next_check_at")
       .eq("user_id", user.id)
       .eq("kind", "web_search")
       .in("state", ["on_it", "watching", "waiting", "needs_you"])
-      .ilike("goal", `%${token}%`)
+      .or(candidates.map((c) => `goal.ilike.%${c}%`).join(","))
       .order("last_check_at", { ascending: false, nullsFirst: false })
-      .limit(1);
-    const watch = (watchRows ?? [])[0] ?? null;
+      .limit(5);
+    const watch = ((watchRows ?? []) as Array<{ goal: string } & Record<string, unknown>>)
+      .find((w) => candidates.some((c) => w.goal.toLowerCase().includes(c.toLowerCase()))) ?? null;
 
     return jsonResponse({
       place: {
