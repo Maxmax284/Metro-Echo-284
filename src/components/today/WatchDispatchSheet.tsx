@@ -84,23 +84,30 @@ type StationSky = {
   feelsC: number;
   condition: string;
   rain: string | null;
+  /** The place the sky was actually read over — said aloud on the card, so a
+      Bangkok watch opened from a Samui ground never wears Samui's sky. */
+  placeLabel: string | null;
 } | null;
 
 /** The live sky for a conditions watch — read on open from the same station
-    the /weather page reads, so the slip and the page never disagree. */
-function useStationSky(enabled: boolean, open: boolean): { sky: StationSky; loading: boolean } {
+    the /weather page reads, over the watch's own resolved place, so the slip
+    and the page never disagree and a non-local watch never shows home's sky. */
+function useStationSky(enabled: boolean, open: boolean, watchId: string | null): { sky: StationSky; loading: boolean } {
   const [sky, setSky] = useState<StationSky>(null);
   const [loading, setLoading] = useState(false);
   useEffect(() => {
-    if (!open || !enabled) return;
+    if (!open || !enabled || !watchId) return;
     let alive = true;
     setLoading(true);
     void (async () => {
-      const { data } = await supabase.functions.invoke("weather-station");
+      const { data } = await supabase.functions.invoke("weather-station", {
+        body: { watch_id: watchId },
+      });
       if (!alive) return;
       const d = data as {
         current?: { tempC: number; feelsC: number; condition: string };
         rainWindows?: Array<{ from: string; to: string }>;
+        place?: { label?: string };
       } | null;
       if (d?.current) {
         const w = d.rainWindows?.[0];
@@ -109,6 +116,7 @@ function useStationSky(enabled: boolean, open: boolean): { sky: StationSky; load
           feelsC: d.current.feelsC,
           condition: d.current.condition,
           rain: w ? `${w.from.slice(11, 16)}–${w.to.slice(11, 16)}` : null,
+          placeLabel: d.place?.label ?? null,
         });
       }
       setLoading(false);
@@ -116,7 +124,7 @@ function useStationSky(enabled: boolean, open: boolean): { sky: StationSky; load
     return () => {
       alive = false;
     };
-  }, [open, enabled]);
+  }, [open, enabled, watchId]);
   return { sky, loading };
 }
 

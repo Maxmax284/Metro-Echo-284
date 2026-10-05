@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useCompanion } from "@/components/companion/CompanionContext";
+import { useAskContext } from "@/hooks/useAskContext";
 import { useScope } from "@/hooks/useScope";
 
 const QUICK = [
@@ -15,17 +15,20 @@ const QUICK = [
 /**
  * AskVantaBar — the primary way into Metro Echo. Not a side widget: it sits at the
  * top of Today, carries the active scope in its wording, and hands the question
- * straight to the companion.
+ * to Echo through the one context door — the thread it opens is bound to the
+ * Today board, so Echo knows where the question was asked from.
  */
 export function AskVantaBar() {
-  const { openWithPrefill } = useCompanion();
+  const { openAskWithContext } = useAskContext();
   const { destination } = useScope();
   const [text, setText] = useState("");
 
   function ask(q: string) {
     const question = q.trim();
     if (!question) return;
-    openWithPrefill(question, { send: true });
+    /* The person typed the words and hit send, so send:true is honest here.
+       Every other surface prefills and lets the person press send themselves. */
+    void openAskWithContext({ kind: "today", label: destination, question, send: true });
     setText("");
   }
 
