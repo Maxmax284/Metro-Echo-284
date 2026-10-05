@@ -9,6 +9,7 @@ import { resolveUser } from "../_shared/authContext.ts";
 import { unauthorized } from "../_shared/errors.ts";
 import { corsHeaders, jsonResponse, preflight } from "../_shared/http.ts";
 import { activeGround, knots, marineLine, rainWindows } from "../_shared/weatherRead.ts";
+import { resolveWatchPlace } from "../_shared/watchPlace.ts";
 
 /* The station reads any genuine fix the person has stamped, not just the one
    active ground — a saved-reading row still never qualifies. */
@@ -73,14 +74,17 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: "rate_limited" }, 429);
     }
 
-    /* Optional body: { place_id } reads that stamped ground; { mode: "grounds" }
+    /* Optional body: { place_id } reads that stamped ground; { watch_id } reads
+       the sky over that watch's own resolved place; { mode: "grounds" }
        returns one current-temp line per stamped ground for the Today strip. */
     let placeId: string | null = null;
+    let watchId: string | null = null;
     let groundsMode = false;
     if (req.method === "POST") {
       const body = await req.json().catch(() => null);
       if (body && typeof body === "object") {
         if (typeof body.place_id === "string" && body.place_id) placeId = body.place_id;
+        if (typeof body.watch_id === "string" && body.watch_id) watchId = body.watch_id;
         if (body.mode === "grounds") groundsMode = true;
       }
     }
@@ -124,6 +128,40 @@ Deno.serve(async (req: Request) => {
     }
 
     let ground = await activeGround(admin, { userId: user.id, orgId: null });
+
+    /* A dispatch slip asks for the sky over its watch's own place — resolved
+       by the exact ladder the hourly tick walks (stamped ground, then any
+       named place on the board, then the watch's own words geocoded), never
+       defaulted to wherever the person happens to be standing. When nothing
+       resolves, the watch is about "here" and the active ground stays. */
+    let watchRow: Record<string, unknown> | null = null;
+    let placeNote: string | null = null;
+    if (watchId) {
+      const { data: w } = await supabase
+        .from("watches")
+        .select("id,goal,state,last_read,last_check_at,next_check_at,telemetry_at,success_when")
+        .eq("id", watchId)
+        .maybeSingle();
+      if (!w) return jsonResponse({ error: "watch_not_found" }, 404);
+      watchRow = w as Record<string, unknown>;
+      const watchText = `${String(w.goal ?? "")} ${String(
+        (w.success_when as { query?: string } | null)?.query ?? "",
+      )}`;
+      const resolved = await resolveWatchPlace(admin, user.id, watchText);
+      if (resolved) {
+        ground = {
+          id: null,
+          label: resolved.label,
+          country: null,
+          region: null,
+          lat: resolved.lat,
+          lon: resolved.lon,
+          stampedAt: null,
+        } as unknown as typeof ground;
+        placeNote = resolved.note;
+      }
+    }
+
     if (placeId) {
       const grounds = await stampedGrounds(admin, user.id);
       const picked = grounds.find((p) => String(p.id) === placeId);
