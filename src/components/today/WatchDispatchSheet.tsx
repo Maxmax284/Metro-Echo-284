@@ -145,7 +145,7 @@ export function WatchDispatchSheet({
   const [busy, setBusy] = useState<"check" | "pause" | "stop" | null>(null);
   const log = useSweepLog(watch?.id ?? null, open);
   const weatherWatch = !!watch && looksLikeWeather(watch.goal);
-  const { sky, loading: skyLoading } = useStationSky(weatherWatch, open);
+  const { sky, loading: skyLoading } = useStationSky(weatherWatch, open, watch?.id ?? null);
   const [tempUnit] = useTempUnit();
 
   if (!watch) return null;
@@ -231,7 +231,8 @@ export function WatchDispatchSheet({
         {weatherWatch && (
           <div className="mt-3 vanta-inset px-3 py-2">
             <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-              <CloudSun className="h-3 w-3" /> Right now, from the instruments
+              <CloudSun className="h-3 w-3" />
+              {sky?.placeLabel ? `Right now over ${sky.placeLabel}, from the instruments` : "Right now, from the instruments"}
             </p>
             {skyLoading ? (
               <p className="mt-1 text-xs text-muted-foreground">Reading the sky…</p>
