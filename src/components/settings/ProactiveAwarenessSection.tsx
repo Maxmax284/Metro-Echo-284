@@ -71,7 +71,7 @@ export function ProactiveAwarenessSection() {
         {prefs.proactive_awareness_enabled && (
           <div className="mt-1 flex items-start justify-between gap-3 border-t border-border/40 py-2">
             <div className="min-w-0">
-              <div className="text-xs font-medium">Watch quietly first (shadow mode)</div>
+              <div className="text-xs font-medium">Silent checks (trial run)</div>
               <div className="text-[11px] text-muted-foreground">
                 Echo runs the full check and keeps the reasoning in Receipts, but says nothing in Today. Use it for a
                 few days to see what it would have raised before letting it speak.

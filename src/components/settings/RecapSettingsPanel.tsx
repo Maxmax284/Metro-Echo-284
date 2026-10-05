@@ -142,8 +142,10 @@ export function RecapSettingsPanel() {
         </li>
         <li className="flex items-start justify-between gap-3 py-2.5">
           <div className="min-w-0">
-            <div className="text-xs font-medium">Include Echo-noticed patterns</div>
-            <div className="text-[11px] text-muted-foreground">Repeated themes and possible duplicates.</div>
+            <div className="text-xs font-medium">Include noticed themes</div>
+            <div className="text-[11px] text-muted-foreground">
+              Repeated topics and possible duplicates Echo spotted across your notes.
+            </div>
           </div>
           <Switch
             checked={recap.include_sherlock}
