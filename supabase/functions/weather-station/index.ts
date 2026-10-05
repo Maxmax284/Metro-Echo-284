@@ -228,21 +228,27 @@ Deno.serve(async (req: Request) => {
        the telemetry numbers. Place names drift between spellings ("Ko Samui"
        vs "Koh Samui"), so the match tries the full first segment and the
        distinctive last word of it, and keeps only genuine hits. */
-    const segment = ground.label.split(",")[0].trim();
-    const words = segment.split(/\s+/).filter(Boolean);
-    const lastWord = words[words.length - 1] ?? segment;
-    const candidates = [...new Set([segment, ...(lastWord.length >= 4 ? [lastWord] : [])])];
-    const { data: watchRows } = await admin
-      .from("watches")
-      .select("id,goal,state,last_read,last_check_at,next_check_at,telemetry_at")
-      .eq("user_id", user.id)
-      .eq("kind", "web_search")
-      .in("state", ["on_it", "watching", "waiting", "needs_you"])
-      .or(candidates.map((c) => `goal.ilike.%${c}%`).join(","))
-      .order("last_check_at", { ascending: false, nullsFirst: false })
-      .limit(5);
-    const watch = ((watchRows ?? []) as Array<{ goal: string } & Record<string, unknown>>)
-      .find((w) => candidates.some((c) => w.goal.toLowerCase().includes(c.toLowerCase()))) ?? null;
+    /* When the caller named its watch, that watch IS the advisory — no label
+       matching needed. Otherwise find the newest open watch naming this ground. */
+    let watch: ({ goal: string } & Record<string, unknown>) | null =
+      watchRow as ({ goal: string } & Record<string, unknown>) | null;
+    if (!watch) {
+      const segment = ground.label.split(",")[0].trim();
+      const words = segment.split(/\s+/).filter(Boolean);
+      const lastWord = words[words.length - 1] ?? segment;
+      const candidates = [...new Set([segment, ...(lastWord.length >= 4 ? [lastWord] : [])])];
+      const { data: watchRows } = await admin
+        .from("watches")
+        .select("id,goal,state,last_read,last_check_at,next_check_at,telemetry_at")
+        .eq("user_id", user.id)
+        .eq("kind", "web_search")
+        .in("state", ["on_it", "watching", "waiting", "needs_you"])
+        .or(candidates.map((c) => `goal.ilike.%${c}%`).join(","))
+        .order("last_check_at", { ascending: false, nullsFirst: false })
+        .limit(5);
+      watch = ((watchRows ?? []) as Array<{ goal: string } & Record<string, unknown>>)
+        .find((w) => candidates.some((c) => w.goal.toLowerCase().includes(c.toLowerCase()))) ?? null;
+    }
 
     return jsonResponse({
       place: {
@@ -253,6 +259,9 @@ Deno.serve(async (req: Request) => {
         lat: ground.lat,
         lon: ground.lon,
         stampedAt: ground.stampedAt,
+        /* Whose sky this is, in the resolver's own words ("your stamped
+           ground", "a place on your board", "the place the watch names"). */
+        note: placeNote,
       },
       checkedLocal: localNow,
       current: {
