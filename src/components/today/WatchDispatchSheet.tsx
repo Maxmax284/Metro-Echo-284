@@ -84,23 +84,30 @@ type StationSky = {
   feelsC: number;
   condition: string;
   rain: string | null;
+  /** The place the sky was actually read over — said aloud on the card, so a
+      Bangkok watch opened from a Samui ground never wears Samui's sky. */
+  placeLabel: string | null;
 } | null;
 
 /** The live sky for a conditions watch — read on open from the same station
-    the /weather page reads, so the slip and the page never disagree. */
-function useStationSky(enabled: boolean, open: boolean): { sky: StationSky; loading: boolean } {
+    the /weather page reads, over the watch's own resolved place, so the slip
+    and the page never disagree and a non-local watch never shows home's sky. */
+function useStationSky(enabled: boolean, open: boolean, watchId: string | null): { sky: StationSky; loading: boolean } {
   const [sky, setSky] = useState<StationSky>(null);
   const [loading, setLoading] = useState(false);
   useEffect(() => {
-    if (!open || !enabled) return;
+    if (!open || !enabled || !watchId) return;
     let alive = true;
     setLoading(true);
     void (async () => {
-      const { data } = await supabase.functions.invoke("weather-station");
+      const { data } = await supabase.functions.invoke("weather-station", {
+        body: { watch_id: watchId },
+      });
       if (!alive) return;
       const d = data as {
         current?: { tempC: number; feelsC: number; condition: string };
         rainWindows?: Array<{ from: string; to: string }>;
+        place?: { label?: string };
       } | null;
       if (d?.current) {
         const w = d.rainWindows?.[0];
@@ -109,6 +116,7 @@ function useStationSky(enabled: boolean, open: boolean): { sky: StationSky; load
           feelsC: d.current.feelsC,
           condition: d.current.condition,
           rain: w ? `${w.from.slice(11, 16)}–${w.to.slice(11, 16)}` : null,
+          placeLabel: d.place?.label ?? null,
         });
       }
       setLoading(false);
@@ -116,7 +124,7 @@ function useStationSky(enabled: boolean, open: boolean): { sky: StationSky; load
     return () => {
       alive = false;
     };
-  }, [open, enabled]);
+  }, [open, enabled, watchId]);
   return { sky, loading };
 }
 
@@ -137,7 +145,7 @@ export function WatchDispatchSheet({
   const [busy, setBusy] = useState<"check" | "pause" | "stop" | null>(null);
   const log = useSweepLog(watch?.id ?? null, open);
   const weatherWatch = !!watch && looksLikeWeather(watch.goal);
-  const { sky, loading: skyLoading } = useStationSky(weatherWatch, open);
+  const { sky, loading: skyLoading } = useStationSky(weatherWatch, open, watch?.id ?? null);
   const [tempUnit] = useTempUnit();
 
   if (!watch) return null;
@@ -223,7 +231,8 @@ export function WatchDispatchSheet({
         {weatherWatch && (
           <div className="mt-3 vanta-inset px-3 py-2">
             <p className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-              <CloudSun className="h-3 w-3" /> Right now, from the instruments
+              <CloudSun className="h-3 w-3" />
+              {sky?.placeLabel ? `Right now over ${sky.placeLabel}, from the instruments` : "Right now, from the instruments"}
             </p>
             {skyLoading ? (
               <p className="mt-1 text-xs text-muted-foreground">Reading the sky…</p>

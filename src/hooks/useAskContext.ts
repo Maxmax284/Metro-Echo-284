@@ -10,8 +10,12 @@ import { useAskThreads } from "@/providers/AskThreadProvider";
 import type { ThreadContext, ThreadContextKind } from "@/lib/askThreads";
 
 export type AskContextRequest = ThreadContext & {
-  /** Opening question. Prefilled, never sent for the user. */
+  /** Opening question. Prefilled, never sent for the user — unless `send` is
+      set, which is reserved for the one case where the person just typed the
+      words and hit send themselves (the Ask bar on Today). */
   question?: string;
+  /** Send the question immediately. Only honest when the person typed it. */
+  send?: boolean;
   /** Open the full Ask room instead of the dock. */
   expand?: boolean;
 };
@@ -26,7 +30,7 @@ export function useAskContext() {
       const context: ThreadContext = { kind: req.kind, id: req.id ?? null, label: req.label };
       const id = await ensureThread(context);
       if (id) await bindContext(id, context);
-      if (req.question) openWithPrefill(req.question);
+      if (req.question) openWithPrefill(req.question, { send: req.send });
       else open();
       if (req.expand) expand();
       return id;

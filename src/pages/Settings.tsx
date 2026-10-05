@@ -75,7 +75,7 @@ export default function Settings() {
           disabled={lockdown}
         >
           <Power className="h-3.5 w-3.5" />
-          {lockdown ? "Locked down" : "Emergency disable"}
+          {lockdown ? "Everything paused" : "Pause everything"}
         </Button>
 
       </header>
@@ -85,8 +85,11 @@ export default function Settings() {
         <div className="mb-4 flex items-start gap-2 rounded-lg bg-destructive/10 p-3 ring-1 ring-destructive/30">
           <ShieldAlert className="mt-0.5 h-4 w-4 text-destructive" />
           <div className="text-xs">
-            <div className="font-medium text-destructive">Lockdown active</div>
-            <div className="text-muted-foreground">No external API calls will run. Switch mode to resume.</div>
+            <div className="font-medium text-destructive">Everything is paused</div>
+            <div className="text-muted-foreground">
+              No outside calls are running — no mail sweeps, no web checks, no weather reads. To resume, open Records
+              and spending: pick a usage mode and flip "Everything outside Metro Echo" back on.
+            </div>
           </div>
         </div>
       )}
