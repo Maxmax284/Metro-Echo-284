@@ -837,6 +837,80 @@ Deno.serve(async (req: Request) => {
         } else if (thread.context_label) {
           headsUpBlock = `This thread is about a watch: ${thread.context_label}. Answer against that record.`;
         }
+      } else if (thread?.context_kind === "today") {
+        /* The Ask bar on Today binds its thread to the board itself. The day
+           data above — calendar, ground, plans — IS the board's truth, so a
+           question asked from Today answers from the same rows Today shows. */
+        headsUpBlock = [
+          `This thread started from the Today board${thread.context_label ? ` (${thread.context_label})` : ""}.`,
+          "The day data already in this prompt — calendar, ground, plans — is the same truth the board shows. Answer from it.",
+          "When the person says \"this\" without naming a thing, ask which one rather than guessing.",
+        ].join("\n");
+      } else if (thread?.context_kind && thread.context_id) {
+        /* Every other bound record reads its own row before Echo speaks —
+           the same law as nudge and watch: recorded facts in the prompt,
+           never a label Echo has to guess behind. */
+        const kind = thread.context_kind;
+        const ctxId = thread.context_id;
+        const facts: string[] = [];
+        if (kind === "project") {
+          const { data: r } = await supabase.from("projects")
+            .select("title, status, summary, updated_at").eq("id", ctxId).maybeSingle();
+          if (r) {
+            facts.push(`- project: ${r.title}`, `- status: ${r.status}`);
+            if (r.summary) facts.push(`- brief: ${String(r.summary).slice(0, 600)}`);
+            facts.push(`- last touched: ${r.updated_at}`);
+          }
+        } else if (kind === "document") {
+          const { data: r } = await supabase.from("documents")
+            .select("title, kind, status, failure_reason, updated_at").eq("id", ctxId).maybeSingle();
+          if (r) {
+            facts.push(`- document: ${r.title} (${r.kind})`, `- status: ${r.status}`);
+            if (r.failure_reason) facts.push(`- last failure: ${r.failure_reason}`);
+            facts.push(`- last touched: ${r.updated_at}`);
+          }
+        } else if (kind === "commitment") {
+          const { data: r } = await supabase.from("commitments")
+            .select("summary, counterparty, direction, due_at, status, priority").eq("id", ctxId).maybeSingle();
+          if (r) {
+            facts.push(`- promise: ${r.summary}`, `- status: ${r.status} · priority: ${r.priority}`);
+            if (r.counterparty) facts.push(`- with: ${r.counterparty} (${r.direction})`);
+            facts.push(r.due_at ? `- due: ${r.due_at}` : "- no due date on record");
+          }
+        } else if (kind === "action") {
+          const { data: r } = await supabase.from("actions")
+            .select("title, status, risk, description, executed_at, rollback_available").eq("id", ctxId).maybeSingle();
+          if (r) {
+            facts.push(`- action: ${r.title}`, `- status: ${r.status} · risk: ${r.risk}`);
+            if (r.description) facts.push(`- detail: ${String(r.description).slice(0, 400)}`);
+            if (r.executed_at) facts.push(`- ran: ${r.executed_at}${r.rollback_available ? " (rollback still available)" : ""}`);
+          }
+        } else if (kind === "receipt") {
+          const { data: r } = await supabase.from("audit_log")
+            .select("event, entity_type, entity_id, created_at, payload").eq("id", ctxId).maybeSingle();
+          if (r) {
+            facts.push(`- receipt: ${r.event}`, `- about: ${r.entity_type}${r.entity_id ? ` ${r.entity_id}` : ""}`, `- recorded: ${r.created_at}`);
+            if (r.payload) facts.push(`- detail: ${JSON.stringify(r.payload).slice(0, 400)}`);
+          }
+        } else if (kind === "note") {
+          const { data: r } = await supabase.from("notes")
+            .select("title, body, tags, updated_at").eq("id", ctxId).maybeSingle();
+          if (r) {
+            if (r.title) facts.push(`- note: ${r.title}`);
+            facts.push(`- says: ${String(r.body).slice(0, 600)}`);
+            if (r.tags?.length) facts.push(`- tagged: ${r.tags.join(", ")}`);
+            facts.push(`- last touched: ${r.updated_at}`);
+          }
+        }
+        if (facts.length) {
+          headsUpBlock = [
+            `This thread is bound to a ${kind} record. Its recorded facts — answer from them, never from a guess behind the label:`,
+            ...facts,
+            "- If the person asks for a change, prepare it for approval and say nothing has run.",
+          ].join("\n");
+        } else if (thread.context_label) {
+          headsUpBlock = `This thread is about ${kind}: ${thread.context_label}. Answer against that record.`;
+        }
       } else if (thread?.context_kind && thread.context_label) {
         headsUpBlock = `This thread is about ${thread.context_kind}: ${thread.context_label}. Answer against that record.`;
       }
