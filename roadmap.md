@@ -20,7 +20,8 @@
 - [x] Fired all 15 cron-invoked functions by hand: all honest. calendar-sync "dead" was a false alarm (anon-Bearer test artifact; no-Authorization cron path syncs fine). gmail-sweep held on Google's API switch (external, user's console toggle)
 
 ## Next
-- [ ] Phase 1 remainder: AskVantaBar→openAskContext binding, push through reach.ts floor gate, WatchDispatchSheet place_id, dead-function cleanup (intake-digest/entity-resolve/cadence-sweep), LIVE_FIX_SOURCES single export, stale-data labels
+- [x] Phase 2: Echo heads-up resolves real records (project/document/commitment/action/receipt/note/today); radar slip sky reads the watch's own place; intake-digest deleted; 4 toggle labels plain-English; AskVantaBar routed through the context door (component is not mounted anywhere — decide: mount or delete)
+- [ ] Remainder: push through reach.ts floor gate, dead-function cleanup (entity-resolve/cadence-sweep), LIVE_FIX_SOURCES single export, stale-data labels
 
 ## Parked
 - Phase 7 ecosystem inlets (GroundStay/CampCore/Fenrir) — shelved per Maxwell
