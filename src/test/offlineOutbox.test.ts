@@ -83,7 +83,9 @@ describe("offlineOutbox", () => {
 
     const synced = await flushOutbox();
     expect(synced).toBe(2);
-    expect(inserts.map((i) => i.table)).toEqual(["notes", "commitments"]);
+    /* The capture rows land once each; the audit_log rows are the sync receipts. */
+    expect(inserts.filter((i) => i.table !== "audit_log").map((i) => i.table)).toEqual(["notes", "commitments"]);
+    expect(inserts.filter((i) => i.table === "audit_log")).toHaveLength(2);
     expect(outboxCount()).toBe(0);
   });
 });

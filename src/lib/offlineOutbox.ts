@@ -65,7 +65,13 @@ export function outboxCount(): number {
 /** True when the failure is the network, not the server saying no. */
 export function isOfflineLike(error: unknown): boolean {
   if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
-  const msg = error instanceof Error ? error.message : String(error ?? "");
+  /* PostgREST errors are plain objects, not Error instances. */
+  const msg =
+    error instanceof Error
+      ? error.message
+      : typeof (error as { message?: unknown } | null)?.message === "string"
+        ? (error as { message: string }).message
+        : String(error ?? "");
   return /failed to fetch|networkerror|network request failed|fetch failed|load failed/i.test(msg);
 }
 
