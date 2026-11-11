@@ -33,9 +33,9 @@ export type WatchPlace = {
   isStampedGround: boolean;
 };
 
-/* Mirror of LIVE_FIX_SOURCES in src/lib/placeMove.ts — the exact list the
-   app's own active-place read accepts. */
-const LIVE_FIX_SOURCES = ["device", "map_picker", "manual_search", "nearby_suggestion", "manual_fix"];
+/* The exact list the app's own active-place read accepts — one export per
+   runtime, client in src/lib/placeMove.ts, server in _shared/liveFixSources. */
+import { LIVE_FIX_SOURCES } from "./liveFixSources.ts";
 
 /** Name candidates for a place label — same drift tolerance as the station
     page ("Ko Samui" vs "Koh Samui"): full first segment plus the distinctive

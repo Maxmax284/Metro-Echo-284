@@ -22,6 +22,7 @@ import { NextMoveLane } from "@/components/today/NextMoveLane";
 import { TransferLane } from "@/components/today/TransferLane";
 import { EntryReadyLane } from "@/components/today/EntryReadyLane";
 import { TodayBriefing } from "@/components/today/TodayBriefing";
+import { AskVantaBar } from "@/components/today/AskVantaBar";
 import { useAwarenessOptional } from "@/providers/AwarenessProvider";
 import { reduceSituation } from "@/lib/situationReducer";
 
@@ -591,6 +592,10 @@ export function TodaySurface({ onNavigate }: { onNavigate: (k: SurfaceKey) => vo
           />
         </div>
       </header>
+
+      {/* The way into Echo from Today — the thread it opens is bound to this
+          board, so Echo knows where the question was asked from. */}
+      <AskVantaBar />
 
       <TickRow live={changeSignal} />
 

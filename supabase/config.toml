@@ -39,9 +39,6 @@ verify_jwt = false
 [functions.wearable-sweep]
 verify_jwt = false
 
-[functions.cadence-sweep]
-verify_jwt = false
-
 [functions.watch-sweep]
 verify_jwt = false
 

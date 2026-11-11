@@ -6,10 +6,9 @@ import { corsHeaders } from "../_shared/http.ts";
 // stamping metadata.telegram_sent_at on the commitment. Capture never
 // executes — this only notifies.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { sendWebPush } from "../_shared/webpush.ts";
 import { composeReminder, sendTelegramReminder } from "../_shared/reminderMessage.ts";
 import { isInQuietHours } from "../_shared/drift.ts";
-import { applyFloor, pushUrgencyHeader, readFloors } from "../_shared/notifyPolicy.ts";
+import { reachPhone } from "../_shared/delivery/reach.ts";
 
 
 
@@ -68,15 +67,6 @@ Deno.serve(async (req: Request) => {
     let telegramDisabled = 0;
     let pushSent = 0;
     let pushSkipped = 0;
-    let pushFailed = 0;
-    let pushUnconfigured = 0;
-    let pushNoSubscription = 0;
-    let pushDisabled = 0;
-
-    const vapidPublic = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
-    const vapidPrivate = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
-    const vapidSubject = Deno.env.get("VAPID_SUBJECT") ?? "";
-    const pushConfigured = !!(vapidPublic && vapidPrivate && vapidSubject);
 
     for (const c of due ?? []) {
       const lastMs = c.last_reminded_at ? new Date(c.last_reminded_at).getTime() : 0;
@@ -187,105 +177,49 @@ Deno.serve(async (req: Request) => {
       // ----------------------------------------------------------------------
 
       // Push delivery branch -------------------------------------------------
-      if (!prof.prefs.push_reminders_enabled) {
-        pushDisabled++;
-        await audit("reminder.push_skipped_disabled", { reason: "push_reminders_enabled=false" });
-      } else if (!pushConfigured) {
-        pushUnconfigured++;
-        await audit("reminder.push_skipped_unconfigured", {
-          reason: "vapid_keys_missing",
-          user_action: "contact_support",
+      /* One gate for every sender: reach.ts owns the floors, the quiet window,
+         the channel toggle, and the receipts. This sweep only decides WHAT is
+         due and how often it may speak — never whether it may reach. A hold is
+         a receipt (nudge.held_by_settings), never silence. */
+      const pushMeta: any = c.metadata ?? {};
+      const lastPushMs = pushMeta.push_sent_at ? new Date(pushMeta.push_sent_at).getTime() : 0;
+      if (lastPushMs && Date.now() - lastPushMs < PUSH_THROTTLE_MS) {
+        pushSkipped++;
+        await audit("reminder.push_skipped_throttled", {
+          last_sent_at: pushMeta.push_sent_at,
+          throttle_ms: PUSH_THROTTLE_MS,
         });
       } else {
-        const urgent = c.priority === "urgent";
-        /* The ladder gate: a schedule floor of Today or digest holds the buzz.
-           Held is a receipt, never silence — the commitment stays open. */
-        const gate = applyFloor({
+        const title = overdue ? "Overdue" : "Heads up";
+        const when = c.due_at
+          ? new Intl.DateTimeFormat("en-US", {
+              timeZone: prof.tz, weekday: "short", month: "short", day: "numeric",
+              hour: "numeric", minute: "2-digit",
+            }).format(new Date(c.due_at))
+          : "";
+        const body = overdue
+          ? `${c.summary}${when ? ` — was due ${when}` : ""}`
+          : `${c.summary}${when ? ` — due ${when}` : ""}`;
+        const sentPush = await reachPhone(supabase, {
+          userId: c.user_id,
+          organizationId: (c as { organization_id?: string | null }).organization_id ?? null,
+          title: `Echo · ${title}`,
+          detail: body,
+          url: `/?commitment=${c.id}`,
+          changeKey: `commitment-${c.id}`,
           urgency: "time_sensitive",
+          entityType: "commitment",
+          entityId: c.id,
           category: "schedule",
-          floors: readFloors(prof.prefs as Record<string, unknown>),
+          source: "commitment-reminders",
         });
-        if (gate.channel !== "push") {
-          pushSkipped++;
-          await audit("reminder.push_held_by_settings", {
-            channel: gate.channel,
-            because: gate.because,
-          });
-        } else if (!urgent && isInQuietHours(prof.tz, prof.prefs.quiet_hours_start, prof.prefs.quiet_hours_end)) {
-          pushSkipped++;
-          await audit("reminder.push_skipped_quiet_hours", { tz: prof.tz });
+        if (sentPush) {
+          pushSent++;
+          await supabase.from("commitments")
+            .update({ metadata: { ...pushMeta, push_sent_at: new Date().toISOString() } })
+            .eq("id", c.id);
         } else {
-          const meta: any = c.metadata ?? {};
-          const lastPushMs = meta.push_sent_at ? new Date(meta.push_sent_at).getTime() : 0;
-          if (lastPushMs && Date.now() - lastPushMs < PUSH_THROTTLE_MS) {
-            pushSkipped++;
-            await audit("reminder.push_skipped_throttled", {
-              last_sent_at: meta.push_sent_at,
-              throttle_ms: PUSH_THROTTLE_MS,
-            });
-          } else {
-            const { data: subs } = await supabase
-              .from("push_subscriptions")
-              .select("id, endpoint, p256dh, auth")
-              .eq("user_id", c.user_id);
-            if (!subs || subs.length === 0) {
-              pushNoSubscription++;
-              await audit("reminder.push_skipped_no_subscription", {
-                reason: "no_push_subscription_for_user",
-                user_action: "enable_push_on_device",
-              });
-            } else {
-              const title = overdue ? "Overdue" : "Heads up";
-              const when = c.due_at
-                ? new Intl.DateTimeFormat("en-US", {
-                    timeZone: prof.tz, weekday: "short", month: "short", day: "numeric",
-                    hour: "numeric", minute: "2-digit",
-                  }).format(new Date(c.due_at))
-                : "";
-              const body = overdue
-                ? `${c.summary}${when ? ` — was due ${when}` : ""}`
-                : `${c.summary}${when ? ` — due ${when}` : ""}`;
-              const payload = {
-                title: `Echo · ${title}`,
-                body,
-                tag: `commitment-${c.id}`,
-                url: `/?commitment=${c.id}`,
-                data: { commitment_id: c.id, overdue },
-              };
-              let anySent = false;
-              const header = pushUrgencyHeader(gate.level);
-              for (const s of subs) {
-                const r = await sendWebPush(
-                  { endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth },
-                  payload,
-                  { vapidPublicKey: vapidPublic, vapidPrivateKey: vapidPrivate, vapidSubject, urgency: header },
-                );
-                if (r.ok) {
-                  anySent = true;
-                  await supabase.from("push_subscriptions")
-                    .update({ last_used_at: new Date().toISOString(), failure_count: 0, last_error: null })
-                    .eq("id", s.id);
-                } else if (r.shouldDelete) {
-                  await supabase.from("push_subscriptions").delete().eq("id", s.id);
-                  await audit("push.subscription_expired", { status: r.status });
-                } else {
-                  await supabase.from("push_subscriptions")
-                    .update({ last_error: r.error ?? `status ${r.status}`, failure_count: (s as any).failure_count ? (s as any).failure_count + 1 : 1 })
-                    .eq("id", s.id);
-                }
-              }
-              if (anySent) {
-                pushSent++;
-                await supabase.from("commitments")
-                  .update({ metadata: { ...meta, push_sent_at: new Date().toISOString() } })
-                  .eq("id", c.id);
-                await audit("reminder.push_sent", { overdue, sub_count: subs.length });
-              } else {
-                pushFailed++;
-                await audit("reminder.push_failed", { sub_count: subs.length });
-              }
-            }
-          }
+          pushSkipped++;
         }
       }
       // ----------------------------------------------------------------------
@@ -298,8 +232,7 @@ Deno.serve(async (req: Request) => {
         swept: due?.length ?? 0,
         emitted,
         telegramSent, telegramSkipped, telegramFailed, telegramUnlinked, telegramDisabled,
-        pushSent, pushSkipped, pushFailed, pushUnconfigured, pushNoSubscription, pushDisabled,
-        pushConfigured,
+        pushSent, pushSkipped,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

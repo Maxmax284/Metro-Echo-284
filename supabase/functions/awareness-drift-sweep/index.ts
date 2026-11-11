@@ -12,15 +12,8 @@ import { corsHeaders } from "../_shared/http.ts";
 // Doctrine: detectors observe. This function drafts. Nothing here stages,
 // approves or executes anything.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { sendWebPush } from "../_shared/webpush.ts";
-import { planDelivery, pushPayload } from "../_shared/delivery/index.ts";
-import {
-  applyFloor,
-  categoryForSituation,
-  levelForUrgency,
-  pushUrgencyHeader,
-  readFloors,
-} from "../_shared/notifyPolicy.ts";
+import { categoryForSituation } from "../_shared/notifyPolicy.ts";
+import { claimDelivery, floorGate, reachPhone } from "../_shared/delivery/reach.ts";
 import { chatIdForUser, sendTelegram } from "../_shared/telegramApi.ts";
 import { enqueueBridgeUpdate } from "../_shared/outboundBridge.ts";
 import { readBrandVoice, styleNotice } from "../_shared/brandVoice.ts";
@@ -218,113 +211,6 @@ async function retirePendingNudges(
   );
   return retirements.length;
 }
-
-/**
- * Send the single surfaced note to the user's registered devices. Never called
- * unless the ladder recommended "phone", which itself requires opt-in plus a
- * live subscription. Failures are logged, never retried loudly.
- */
-async function reachPhone(
-  sb: SupabaseClient,
-  userId: string,
-  scopeCols: Record<string, unknown>,
-  decision: { title: string; nextStep: string; entityType?: string; entityId?: string; urgency: string },
-): Promise<void> {
-  /* The ladder gate: the sweep's own urgency call still answers to the
-     person's per-category floor. A hold leaves a receipt, never silence —
-     the nudge itself is already waiting in Today. */
-  const { data: prof } = await sb
-    .from("profiles")
-    .select("preferences")
-    .eq("id", userId)
-    .maybeSingle();
-  const gate = applyFloor({
-    urgency: decision.urgency,
-    category: categoryForSituation(decision.entityType),
-    floors: readFloors((prof?.preferences as Record<string, unknown>) ?? null),
-  });
-  if (gate.channel !== "push") {
-    await sb.from("audit_log").insert({
-      user_id: userId,
-      ...scopeCols,
-      entity_type: "nudge",
-      entity_id: decision.entityId ?? null,
-      event: "nudge.held_by_settings",
-      payload: {
-        channel: gate.channel,
-        level: gate.level,
-        category: gate.category,
-        urgency: decision.urgency,
-        because: gate.because,
-        source: "scheduled_sweep",
-      },
-    });
-    return;
-  }
-
-  const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
-  const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
-  const vapidSubject = Deno.env.get("VAPID_SUBJECT") ?? "";
-  if (!vapidPublicKey || !vapidPrivateKey || !vapidSubject) return;
-
-  const { data: subs } = await sb
-    .from("push_subscriptions")
-    .select("id, endpoint, p256dh, auth")
-    .eq("user_id", userId);
-  if (!subs?.length) return;
-
-  let sent = 0;
-  let failed = 0;
-  /* Conclusion first, a deep link to the exact thing, and only low-consequence
-     actions. Nothing here approves anything: "Later" and "Got it" carry a status
-     back into the platform, where the person decides. */
-  const plan = planDelivery({
-    situation: {
-      id: decision.entityId ?? "nudge",
-      kind: `nudge.${decision.entityType ?? "nudge"}`,
-      url: "/?room=today",
-    },
-    urgency: (decision.urgency as never) ?? "attention",
-    sensitivity: "ordinary",
-    headline: decision.title,
-    detail: decision.nextStep,
-    changeKey: decision.entityId ?? decision.title,
-    context: { pushOptIn: true, pushSubscribed: true },
-  });
-  const payload = pushPayload(plan);
-
-  const header = pushUrgencyHeader(levelForUrgency(decision.urgency));
-  for (const s of subs as any[]) {
-    const r = await sendWebPush(
-      { endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth },
-      { ...payload, tag: "vanta-awareness" },
-      { vapidPublicKey, vapidPrivateKey, vapidSubject, urgency: header },
-    );
-    if (r.ok) {
-      sent++;
-      await sb.from("push_subscriptions")
-        .update({ last_used_at: new Date().toISOString(), failure_count: 0, last_error: null })
-        .eq("id", s.id);
-    } else if (r.shouldDelete) {
-      await sb.from("push_subscriptions").delete().eq("id", s.id);
-    } else {
-      failed++;
-      await sb.from("push_subscriptions")
-        .update({ last_error: r.error ?? `status ${r.status}` })
-        .eq("id", s.id);
-    }
-  }
-
-  await sb.from("audit_log").insert({
-    user_id: userId,
-    ...scopeCols,
-    entity_type: "nudge",
-    entity_id: decision.entityId ?? null,
-    event: "nudge.delivered",
-    payload: { channel: "phone", urgency: decision.urgency, sent, failed, source: "scheduled_sweep" },
-  });
-}
-
 
 async function sweepScope(
   sb: SupabaseClient,
@@ -797,60 +683,53 @@ async function sweepScope(
     ? "today"
     : decision.delivery.recommendedChannel;
   if (surface === "phone" || surface === "messaging") {
-    const claimed = await claimDelivery(sb, userId, scopeCols, {
-      situationKind: `nudge.${decision.bundle.lead.signal.type}`,
-      situationId: decision.entityId ?? decision.dedupeKey,
-      dedupeKey: `nudge:${decision.dedupeKey}`,
-      surface,
+    /* One gate for both pockets: reach.ts owns the floors and the quiet
+       window, and a hold leaves a receipt either way. The Today nudge is
+       already written — this only decides whether it may also buzz. */
+    const gate = await floorGate(sb, {
+      userId,
+      organizationId: orgId,
       urgency: decision.urgency,
-      headline: decision.title,
-      because: `awareness ladder chose ${surface}`,
+      entityType: decision.entityType ?? "nudge",
+      entityId: decision.entityId ?? null,
+      source: "scheduled_sweep",
     });
-    if (claimed) {
-      if (surface === "phone") await reachPhone(sb, userId, scopeCols, decision);
-      else await reachMessaging(sb, userId, scopeCols, decision, nudgeId);
+    if (gate.channel === "push") {
+      const claimId = await claimDelivery(sb, {
+        userId,
+        organizationId: orgId,
+        situationKind: `nudge.${decision.bundle.lead.signal.type}`,
+        situationId: decision.entityId ?? decision.dedupeKey,
+        dedupeKey: `nudge:${decision.dedupeKey}`,
+        surface,
+        urgency: decision.urgency,
+        headline: decision.title,
+        because: `awareness ladder chose ${surface}`,
+      });
+      if (claimId) {
+        if (surface === "phone") {
+          await reachPhone(sb, {
+            userId,
+            organizationId: orgId,
+            title: decision.title,
+            detail: decision.nextStep,
+            url: "/?room=today",
+            changeKey: decision.entityId ?? decision.dedupeKey,
+            urgency: decision.urgency,
+            entityType: decision.entityType ?? "nudge",
+            entityId: decision.entityId ?? null,
+            source: "scheduled_sweep",
+            gateApplied: true,
+          });
+        } else {
+          await reachMessaging(sb, userId, scopeCols, decision, nudgeId);
+        }
+      }
     }
   }
   return "proposed";
 
 
-}
-
-/**
- * Claim the right to deliver this exact change on this exact surface. The unique
- * index on (user, dedupe key, surface) is the referee: a second claim for the
- * same news loses and nothing is sent twice.
- */
-async function claimDelivery(
-  sb: SupabaseClient,
-  userId: string,
-  scopeCols: Record<string, unknown>,
-  d: {
-    situationKind: string;
-    situationId: string;
-    dedupeKey: string;
-    surface: string;
-    urgency: string;
-    headline: string;
-    because: string;
-  },
-): Promise<boolean> {
-  const { error } = await sb.from("deliveries").insert({
-    user_id: userId,
-    ...scopeCols,
-    situation_kind: d.situationKind,
-    situation_id: d.situationId,
-    dedupe_key: d.dedupeKey,
-    surface: d.surface,
-    urgency: d.urgency,
-    sensitivity: "ordinary",
-    because: d.because,
-    headline: d.headline,
-    status: "sent",
-  });
-  if (!error) return true;
-  /* A duplicate key means this news already went out. Silence is correct. */
-  return false;
 }
 
 
