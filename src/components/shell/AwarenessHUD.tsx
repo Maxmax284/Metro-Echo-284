@@ -772,7 +772,8 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
                   ) : (() => {
                     const tier = tierFor(ping.label);
                     const tierLine: Record<SourceTier, string> = {
-                      official: "Official feed — weather, calendars, or government data. High trust.",
+                      yours: "Your own records — notes, promises, and plans already in Metro Echo.",
+                      official: "Official feed — the weather service or your calendars. High trust.",
                       local: "Local feed — maps, nearby places, or transit. Geographic context.",
                       community: "Community signal — Reddit, forums, local chatter. Use with judgement.",
                       web: "Web search — broad lookups and news. Verify before acting.",
