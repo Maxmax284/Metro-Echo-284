@@ -26,6 +26,14 @@
 - [x] Offline outbox — src/lib/offlineOutbox.ts; captures/notes/promises written with no signal park on the device with a minted id + device receipt toast; reconnect replay is idempotent on the PK (duplicate key = already landed, never a twin); capture.synced_from_device receipt per replay; wired into GotSomethingChooser, CaptureWorkspace, VoiceCaptureCard
 - [x] Verified: production build served locally → SW active + 67 precache entries → network killed → app opens offline (sign-in shell renders) → reconnect recovers; 4 outbox tests pin the queue rules; full suite 2,385 passed (4 pre-known TZ-dependent Telegram/calendar date failures, untouched by this batch)
 
+## Phase 4a — honest sources & a backup brain (this batch)
+- [x] Backup brain — responsesChat.postConverseTurn: ChatGPT 502/503/504 → one Gemini (gemini-3.8-flash) re-ask on chat-completions, translated to Responses events; 429/402/403 never fall back; in-app Echo shows it on the "Why this?" provenance line, Telegram adds one plain line. Tested (backupBrain.test.ts)
+- [x] Missing search key named distinctly — web-look (search + watch), watch-sweep (no miss counted, no watch retired), research-run all say "search isn't set up" instead of "switched off" / "could not reach"
+- [x] Structural source tiers — src/lib/sourceTier.ts registry replaces AwarenessHUD keyword guessing; new "Yours" tier for internal records; unknown ids stay "web". Tested (sourceTier.test.ts)
+- [ ] Phase 4b — grounding.sources beyond files (web/calendar provenance on intents)
+- [ ] Phase 4b — token-budgeted context assembly + thread compaction
+- [ ] Phase 4b — adaptive drift-sweep cadence (low yield)
+
 ## Next
 - [x] Phase 2: Echo heads-up resolves real records (project/document/commitment/action/receipt/note/today); radar slip sky reads the watch's own place; intake-digest deleted; 4 toggle labels plain-English; AskVantaBar routed through the context door (component is not mounted anywhere — decide: mount or delete)
 - [x] Remainder done: commitment-reminders + awareness-drift-sweep push now route through reach.ts floorGate/reachPhone (one gate owns floors, quiet window, push toggle, receipts; drift-sweep messaging path gained the floor gate it lacked); cadence-sweep deleted (no callers, no cron — entity-resolve stayed, it's live via CapturesView); AskVantaBar mounted on Today (was orphaned); LIVE_FIX_SOURCES consolidated to one export per runtime (src/lib/placeMove.ts + _shared/liveFixSources.ts, three server mirrors removed); OfflineNote — one shared no-signal line in the shell above every room
