@@ -205,7 +205,6 @@ Deno.serve(async (req: Request) => {
                 .update({ success_when: { ...row.success_when, misses } })
                 .eq("id", row.id);
             }
-            }
           } else {
             lastRead = String(got.read.title ?? got.read.host).slice(0, 140);
             const checked = checkPage(
@@ -363,6 +362,7 @@ Deno.serve(async (req: Request) => {
                 .from("watches")
                 .update({ success_when: { ...row.success_when, misses } })
                 .eq("id", row.id);
+            }
             }
           }
         }
