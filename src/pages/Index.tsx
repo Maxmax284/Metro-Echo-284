@@ -376,6 +376,9 @@ function IndexInner() {
             <NudgesPanel collapsed />
           </div>
           <MissingSecretsBanner />
+          {/* One line for every room when the bars go — stale reads never
+              pass as fresh. */}
+          <OfflineNote className="mx-3 mt-2 md:mx-4" />
 
           <SurfaceCrossfade surfaceKey={surface} innerRef={surfaceWrapperRef}>
             {surface === "today" && <TodaySurface onNavigate={setSurface} />}
