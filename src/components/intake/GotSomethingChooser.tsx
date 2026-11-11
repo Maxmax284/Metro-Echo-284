@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
 import { useStageAction } from "@/hooks/useStageAction";
+import { insertWithOutbox } from "@/lib/offlineOutbox";
 import { vantaToast } from "@/lib/vantaVoice";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { cn } from "@/lib/utils";
