@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { AmbientHeader } from "@/components/shell/AmbientHeader";
 import { SurfaceTabs, SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { SurfaceCrossfade } from "@/components/shell/SurfaceCrossfade";
+import { OfflineNote } from "@/components/ui/offline-note";
 import { ConversationSurface } from "@/components/surfaces/ConversationSurface";
 import { ThreadRail, ThreadBar } from "@/components/ask/ThreadSpine";
 import { AskRoom } from "@/components/ask/AskRoom";
@@ -376,6 +377,9 @@ function IndexInner() {
             <NudgesPanel collapsed />
           </div>
           <MissingSecretsBanner />
+          {/* One line for every room when the bars go — stale reads never
+              pass as fresh. */}
+          <OfflineNote className="mx-3 mt-2 md:mx-4" />
 
           <SurfaceCrossfade surfaceKey={surface} innerRef={surfaceWrapperRef}>
             {surface === "today" && <TodaySurface onNavigate={setSurface} />}
