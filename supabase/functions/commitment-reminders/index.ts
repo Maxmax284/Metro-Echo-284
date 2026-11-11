@@ -6,10 +6,9 @@ import { corsHeaders } from "../_shared/http.ts";
 // stamping metadata.telegram_sent_at on the commitment. Capture never
 // executes — this only notifies.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { sendWebPush } from "../_shared/webpush.ts";
 import { composeReminder, sendTelegramReminder } from "../_shared/reminderMessage.ts";
 import { isInQuietHours } from "../_shared/drift.ts";
-import { applyFloor, pushUrgencyHeader, readFloors } from "../_shared/notifyPolicy.ts";
+import { reachPhone } from "../_shared/delivery/reach.ts";
 
 
 
