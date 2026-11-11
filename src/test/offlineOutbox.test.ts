@@ -16,7 +16,10 @@ vi.mock("@/integrations/supabase/client", () => ({
         inserts.push({ table, row });
         const error = nextError;
         nextError = null;
-        return Promise.resolve({ data: error ? null : row, error });
+        const result = Promise.resolve({ data: error ? null : row, error });
+        return Object.assign(result, {
+          select: () => ({ single: () => Promise.resolve({ data: { id: "audit-1" }, error: null }) }),
+        });
       },
     }),
   },

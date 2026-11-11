@@ -177,8 +177,10 @@ export async function flushOutbox(): Promise<number> {
       await replayRoute(item);
     } catch {
       /* The receipt retrying next pass is cheaper than blocking the queue. */
-      if (error && !isDuplicateKey(error)) remaining.push(item);
-      continue;
+      if (error && !isDuplicateKey(error)) {
+        remaining.push(item);
+        continue;
+      }
     }
     await supabase.from("audit_log").insert({
       user_id: item.row.user_id as string,
