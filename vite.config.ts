@@ -40,7 +40,7 @@ export default defineConfig(({ mode }) => ({
             /* Same-origin hashed build assets are immutable — cache first. */
             urlPattern: ({ url, request }) =>
               request.destination !== "document" &&
-              url.origin === self.location.origin &&
+              url.origin === (globalThis as { location?: { origin: string } }).location?.origin &&
               /\/assets\/.+\.(js|css)$/.test(url.pathname),
             handler: "CacheFirst",
             options: {

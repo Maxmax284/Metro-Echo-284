@@ -44,6 +44,7 @@ describe("offlineOutbox", () => {
     Object.defineProperty(navigator, "onLine", { value: false, configurable: true });
     const outcome = await insertWithOutbox("notes", row, { label: "Parked note" });
     expect(outcome).toMatchObject({ queued: true });
+    if (!("id" in outcome)) throw new Error("expected an id");
     const held = readOutbox();
     expect(held).toHaveLength(1);
     expect(held[0].row.id).toBe(outcome.id);
@@ -55,6 +56,7 @@ describe("offlineOutbox", () => {
     Object.defineProperty(navigator, "onLine", { value: false, configurable: true });
     const outcome = await insertWithOutbox("notes", row, { label: "Parked note" });
     Object.defineProperty(navigator, "onLine", { value: true, configurable: true });
+    if (!("id" in outcome)) throw new Error("expected an id");
 
     nextError = { code: "23505", message: "duplicate key value violates unique constraint" };
     const synced = await flushOutbox();
