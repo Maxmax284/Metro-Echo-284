@@ -21,7 +21,7 @@
 
 ## Next
 - [x] Phase 2: Echo heads-up resolves real records (project/document/commitment/action/receipt/note/today); radar slip sky reads the watch's own place; intake-digest deleted; 4 toggle labels plain-English; AskVantaBar routed through the context door (component is not mounted anywhere — decide: mount or delete)
-- [ ] Remainder: push through reach.ts floor gate, dead-function cleanup (entity-resolve/cadence-sweep), LIVE_FIX_SOURCES single export, stale-data labels
+- [x] Remainder done: commitment-reminders + awareness-drift-sweep push now route through reach.ts floorGate/reachPhone (one gate owns floors, quiet window, push toggle, receipts; drift-sweep messaging path gained the floor gate it lacked); cadence-sweep deleted (no callers, no cron — entity-resolve stayed, it's live via CapturesView); AskVantaBar mounted on Today (was orphaned); LIVE_FIX_SOURCES consolidated to one export per runtime (src/lib/placeMove.ts + _shared/liveFixSources.ts, three server mirrors removed); OfflineNote — one shared no-signal line in the shell above every room
 
 ## Parked
 - Phase 7 ecosystem inlets (GroundStay/CampCore/Fenrir) — shelved per Maxwell
