@@ -35,6 +35,9 @@ export default defineConfig(({ mode }) => ({
         navigateFallback: "index.html",
         navigateFallbackDenylist: [/^\/~oauth/, /^\/sw\.js$/, /^\/app-sw\.js$/],
         globPatterns: ["**/*.{js,css,html,svg,png,woff,woff2}"],
+        /* The shell is one big bundle; it must precache whole or offline
+           startup is a blank page. */
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         runtimeCaching: [
           {
             /* Same-origin hashed build assets are immutable — cache first. */
