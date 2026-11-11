@@ -32,6 +32,7 @@ import { AmbientInteractions } from "@/components/shell/AmbientInteractions";
 import { DeskTransitOverlay } from "@/components/shell/DeskTransit";
 import { useRegisterServiceWorker } from "@/hooks/useRegisterServiceWorker";
 import { useDeliveryAck } from "@/hooks/useDeliveryAck";
+import { initOutboxFlush } from "@/lib/offlineOutbox";
 import Index from "./pages/Index.tsx";
 const GoogleCalendarReturn = lazy(() => import("./pages/oauth/GoogleCalendarReturn"));
 const GoogleReturn = lazy(() => import("./pages/oauth/GoogleReturn"));
@@ -183,6 +184,7 @@ const App = () => {
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
+    </PersistQueryClientProvider>
     </QueryClientProvider>
   );
 };
