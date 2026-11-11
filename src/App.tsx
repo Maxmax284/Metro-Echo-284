@@ -185,7 +185,6 @@ const App = () => {
         </BrowserRouter>
       </TooltipProvider>
     </PersistQueryClientProvider>
-    </QueryClientProvider>
   );
 };
 
