@@ -1,5 +1,7 @@
-import { lazy, Suspense } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { lazy, Suspense, useEffect } from "react";
+import { QueryClient } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -61,6 +63,15 @@ const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
 
+/* The read-mostly rooms keep their last good read on the device, so a room
+   opened with no signal shows what was last on record instead of a blank.
+   Only queries that opt in with meta.persist are kept; anything live or
+   sensitive stays memory-only. */
+const queryPersister = createSyncStoragePersister({
+  storage: typeof window === "undefined" ? undefined : window.localStorage,
+  key: "vanta.rq_cache.v1",
+});
+
 /* A tapped notification action carries a status, never an execution. It is
    applied here, inside the signed-in session, and then wiped from the URL. */
 const DeliveryAck = () => {
@@ -71,8 +82,22 @@ const DeliveryAck = () => {
 const App = () => {
   useRegisterServiceWorker();
 
+  useEffect(() => {
+    initOutboxFlush();
+  }, []);
+
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister: queryPersister,
+        maxAge: 24 * 60 * 60 * 1000,
+        buster: "v1",
+        dehydrateOptions: {
+          shouldDehydrateQuery: (q) => q.meta?.persist === true && q.state.status === "success",
+        },
+      }}
+    >
       <TooltipProvider>
         <Toaster />
         <Sonner />
