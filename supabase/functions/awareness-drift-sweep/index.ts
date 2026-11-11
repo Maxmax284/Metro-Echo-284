@@ -683,60 +683,53 @@ async function sweepScope(
     ? "today"
     : decision.delivery.recommendedChannel;
   if (surface === "phone" || surface === "messaging") {
-    const claimed = await claimDelivery(sb, userId, scopeCols, {
-      situationKind: `nudge.${decision.bundle.lead.signal.type}`,
-      situationId: decision.entityId ?? decision.dedupeKey,
-      dedupeKey: `nudge:${decision.dedupeKey}`,
-      surface,
+    /* One gate for both pockets: reach.ts owns the floors and the quiet
+       window, and a hold leaves a receipt either way. The Today nudge is
+       already written — this only decides whether it may also buzz. */
+    const gate = await floorGate(sb, {
+      userId,
+      organizationId: orgId,
       urgency: decision.urgency,
-      headline: decision.title,
-      because: `awareness ladder chose ${surface}`,
+      entityType: decision.entityType ?? "nudge",
+      entityId: decision.entityId ?? null,
+      source: "scheduled_sweep",
     });
-    if (claimed) {
-      if (surface === "phone") await reachPhone(sb, userId, scopeCols, decision);
-      else await reachMessaging(sb, userId, scopeCols, decision, nudgeId);
+    if (gate.channel === "push") {
+      const claimId = await claimDelivery(sb, {
+        userId,
+        organizationId: orgId,
+        situationKind: `nudge.${decision.bundle.lead.signal.type}`,
+        situationId: decision.entityId ?? decision.dedupeKey,
+        dedupeKey: `nudge:${decision.dedupeKey}`,
+        surface,
+        urgency: decision.urgency,
+        headline: decision.title,
+        because: `awareness ladder chose ${surface}`,
+      });
+      if (claimId) {
+        if (surface === "phone") {
+          await reachPhone(sb, {
+            userId,
+            organizationId: orgId,
+            title: decision.title,
+            detail: decision.nextStep,
+            url: "/?room=today",
+            changeKey: decision.entityId ?? decision.dedupeKey,
+            urgency: decision.urgency,
+            entityType: decision.entityType ?? "nudge",
+            entityId: decision.entityId ?? null,
+            source: "scheduled_sweep",
+            gateApplied: true,
+          });
+        } else {
+          await reachMessaging(sb, userId, scopeCols, decision, nudgeId);
+        }
+      }
     }
   }
   return "proposed";
 
 
-}
-
-/**
- * Claim the right to deliver this exact change on this exact surface. The unique
- * index on (user, dedupe key, surface) is the referee: a second claim for the
- * same news loses and nothing is sent twice.
- */
-async function claimDelivery(
-  sb: SupabaseClient,
-  userId: string,
-  scopeCols: Record<string, unknown>,
-  d: {
-    situationKind: string;
-    situationId: string;
-    dedupeKey: string;
-    surface: string;
-    urgency: string;
-    headline: string;
-    because: string;
-  },
-): Promise<boolean> {
-  const { error } = await sb.from("deliveries").insert({
-    user_id: userId,
-    ...scopeCols,
-    situation_kind: d.situationKind,
-    situation_id: d.situationId,
-    dedupe_key: d.dedupeKey,
-    surface: d.surface,
-    urgency: d.urgency,
-    sensitivity: "ordinary",
-    because: d.because,
-    headline: d.headline,
-    status: "sent",
-  });
-  if (!error) return true;
-  /* A duplicate key means this news already went out. Silence is correct. */
-  return false;
 }
 
 
