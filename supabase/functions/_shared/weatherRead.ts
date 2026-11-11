@@ -26,12 +26,12 @@ export type GroundPlace = {
   stampedAt: string | null;
 };
 
-/* Mirror of LIVE_FIX_SOURCES in src/lib/placeMove.ts and the awareness-query
-   resolver — the exact list the app's own active-place read accepts. A named
-   or saved place is never the live ground; a stamp outranks a fresher
+/* The exact list the app's own active-place read accepts — one export per
+   runtime, client in src/lib/placeMove.ts, server in _shared/liveFixSources.
+   A named or saved place is never the live ground; a stamp outranks a fresher
    unstamped fix because the stamp is the person's deliberate "this is my
    ground". */
-const LIVE_FIX_SOURCES = ["device", "map_picker", "manual_search", "nearby_suggestion", "manual_fix"];
+import { LIVE_FIX_SOURCES } from "./liveFixSources.ts";
 
 /**
  * The one resolver for "where is this person standing". Stamped ground first,
