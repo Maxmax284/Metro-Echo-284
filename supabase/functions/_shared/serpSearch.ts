@@ -38,6 +38,16 @@ function isJunkUrl(url: string): boolean {
   }
 }
 
+/* A missing search key is a setup fact, not a flaky network — every caller
+   says so in these words instead of "switched off" or "could not reach". */
+export const SEARCH_NOT_CONFIGURED =
+  "Web search isn't set up here yet — the search key is missing, so Echo didn't go looking.";
+export const SEARCH_NOT_CONFIGURED_CODE = "search_not_configured";
+
+export function isSearchNotConfigured(e: unknown): boolean {
+  return e instanceof Error && e.message === "SERPAPI_KEY missing";
+}
+
 export async function serpSearch(query: string, apiKey: string): Promise<SerpHit[]> {
   if (!apiKey) throw new Error("SERPAPI_KEY missing");
   const u = new URL("https://serpapi.com/search.json");

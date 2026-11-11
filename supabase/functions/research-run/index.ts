@@ -233,7 +233,10 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const raw = e instanceof Error ? e.message : String(e);
+      const msg = raw === "SERPAPI_KEY missing"
+        ? "Web search isn't set up here yet — the search key is missing, so Echo didn't go looking."
+        : raw;
       await db.from("research_objects").update({
         status: "failed", error: msg, completed_at: new Date().toISOString(),
       }).eq("id", researchId);
