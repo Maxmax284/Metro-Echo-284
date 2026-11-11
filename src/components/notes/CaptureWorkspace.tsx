@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
 import { useCaptureRoute } from "@/hooks/useCaptureRoute";
+import { insertWithOutbox } from "@/lib/offlineOutbox";
 import { useDictation } from "@/hooks/useDictation";
 import { useStageAction } from "@/hooks/useStageAction";
 import { useAskThreads } from "@/providers/AskThreadProvider";

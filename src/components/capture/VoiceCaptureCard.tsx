@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2, Check, AlertCircle } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { useCaptureRoute } from "@/hooks/useCaptureRoute";
+import { insertWithOutbox } from "@/lib/offlineOutbox";
 import { cn } from "@/lib/utils";
 
 type RecognitionLike = {
