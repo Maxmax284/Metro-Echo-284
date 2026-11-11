@@ -85,7 +85,10 @@ async function unregisterHere(): Promise<void> {
     const regs = await navigator.serviceWorker.getRegistrations();
     await Promise.allSettled(
       regs
-        .filter((r) => (r.active?.scriptURL || r.installing?.scriptURL || "").endsWith("/sw.js"))
+        .filter((r) => {
+          const script = r.active?.scriptURL || r.installing?.scriptURL || "";
+          return script.endsWith("/sw.js") || script.endsWith("/app-sw.js");
+        })
         .map((r) => r.unregister()),
     );
   } catch {
@@ -93,6 +96,9 @@ async function unregisterHere(): Promise<void> {
   }
 }
 
+/* One registration at "/" carries both the app shell and the push handlers
+   (app-sw.js imports sw-push.js). Push rides the shared registration — a
+   second worker at the same scope would replace it and kill offline startup. */
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return null;
   if (!swAllowedHere()) {
@@ -100,7 +106,9 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
     return null;
   }
   try {
-    return await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    const existing = await navigator.serviceWorker.getRegistration("/");
+    if (existing) return existing;
+    return await navigator.serviceWorker.ready;
   } catch {
     return null;
   }

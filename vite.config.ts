@@ -37,7 +37,11 @@ export default defineConfig(({ mode }) => ({
            when there is no signal at all. OAuth and the workers themselves
            never fall back to the shell. */
         navigateFallback: "index.html",
-        navigateFallbackDenylist: [/^\/~oauth/, /^\/sw\.js$/, /^\/app-sw\.js$/],
+        navigateFallbackDenylist: [/^\/~oauth/],
+        /* One registration at "/" carries both jobs: the precached shell and
+           the push handlers. A second worker at the same scope would replace
+           this one and take offline startup down with it. */
+        importScripts: ["/sw-push.js"],
         globPatterns: ["**/*.{js,css,html,svg,png,woff,woff2}"],
         /* The shell is one big bundle; it must precache whole or offline
            startup is a blank page. */
