@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { AmbientHeader } from "@/components/shell/AmbientHeader";
 import { SurfaceTabs, SurfaceKey } from "@/components/shell/SurfaceTabs";
 import { SurfaceCrossfade } from "@/components/shell/SurfaceCrossfade";
+import { OfflineNote } from "@/components/ui/offline-note";
 import { ConversationSurface } from "@/components/surfaces/ConversationSurface";
 import { ThreadRail, ThreadBar } from "@/components/ask/ThreadSpine";
 import { AskRoom } from "@/components/ask/AskRoom";
