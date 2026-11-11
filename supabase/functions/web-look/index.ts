@@ -26,7 +26,7 @@ import {
   webWatchGoal,
   type PageRead,
 } from "../_shared/webLook.ts";
-import { serpSearch } from "../_shared/serpSearch.ts";
+import { serpSearch, SEARCH_NOT_CONFIGURED, SEARCH_NOT_CONFIGURED_CODE } from "../_shared/serpSearch.ts";
 import { sitrepFrom } from "../_shared/sitrep.ts";
 
 const Body = z.object({
@@ -100,6 +100,9 @@ Deno.serve(async (req: Request) => {
     if (mode === "search") {
       const q = (question ?? "").trim();
       if (q.length < 3) return jsonResponse({ error: "question_required" }, 400);
+      if (!SERPAPI_KEY) {
+        return jsonResponse({ ok: false, blocked: SEARCH_NOT_CONFIGURED_CODE, answer: SEARCH_NOT_CONFIGURED });
+      }
       const res = await runGuarded(
         {
           owner_id: user.id,
@@ -153,6 +156,9 @@ Deno.serve(async (req: Request) => {
         });
       }
 
+      if (!SERPAPI_KEY) {
+        return jsonResponse({ ok: false, blocked: SEARCH_NOT_CONFIGURED_CODE, answer: SEARCH_NOT_CONFIGURED });
+      }
       const res = await runGuarded(
         {
           owner_id: user.id,

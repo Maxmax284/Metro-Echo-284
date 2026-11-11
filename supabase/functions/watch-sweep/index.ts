@@ -21,7 +21,7 @@ import {
 } from "../_shared/watch.ts";
 import { fetchPage } from "../_shared/webFetch.ts";
 import { checkPage, checkSearch } from "../_shared/webLook.ts";
-import { serpSearch } from "../_shared/serpSearch.ts";
+import { serpSearch, isSearchNotConfigured, SEARCH_NOT_CONFIGURED_CODE } from "../_shared/serpSearch.ts";
 import { firstLine, sitrepFrom, stripCitations } from "../_shared/sitrep.ts";
 import { RESEARCH_VOICE } from "../_shared/vantaVoice.ts";
 import { looksLikeWeather } from "../_shared/weatherRead.ts";
@@ -347,6 +347,12 @@ Deno.serve(async (req: Request) => {
             }
           } catch (e) {
             console.error("[watch-sweep] search check", e);
+            if (isSearchNotConfigured(e)) {
+              /* Setup, not weather: no miss counted, no watch retired on a
+                 missing key — the reason is named instead. */
+              console.error("[watch-sweep]", SEARCH_NOT_CONFIGURED_CODE, row.id);
+              result = { state: "watching", outcome: null };
+            } else {
             const misses = Number(row.success_when?.misses ?? 0) + 1;
             if (misses >= 3) {
               result = { state: "couldnt_finish", outcome: "Echo could not reach the web search for that watch." };
@@ -356,6 +362,7 @@ Deno.serve(async (req: Request) => {
                 .from("watches")
                 .update({ success_when: { ...row.success_when, misses } })
                 .eq("id", row.id);
+            }
             }
           }
         }

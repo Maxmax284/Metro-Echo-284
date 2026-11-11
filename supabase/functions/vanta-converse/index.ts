@@ -8,7 +8,7 @@ import { COMPANION_VOICE, MEDIA_CAPABILITY, RESEARCH_VOICE } from "../_shared/va
 import { brandVoiceDirective, readBrandVoice } from "../_shared/brandVoice.ts";
 import { bodyForDevice, depthDirective } from "../_shared/responseDepth.ts";
 import { ROUTING_RULES, VOICE_RULES, STRUCTURE_RULES } from "../_shared/routingRules.ts";
-import { createTurnReducer, iterResponsesEvents, postResponsesTurn } from "../_shared/responsesChat.ts";
+import { createTurnReducer, iterResponsesEvents, postConverseTurn, postResponsesTurn } from "../_shared/responsesChat.ts";
 import { serpSearch } from "../_shared/serpSearch.ts";
 import { sitrepFrom } from "../_shared/sitrep.ts";
 import { buildWorkingContext, workingContextBlock } from "../_shared/workingContext.ts";
@@ -1094,7 +1094,7 @@ Deno.serve(async (req: Request) => {
       if (researchHasSources && n === "look_up") return false;
       return true;
     });
-    const upstream = await postResponsesTurn({
+    const { response: upstream, brain } = await postConverseTurn({
       apiKey: LOVABLE_API_KEY,
       messages,
       tools: answerTools,
@@ -1126,7 +1126,13 @@ Deno.serve(async (req: Request) => {
 
         /* Provenance, up front: the reads that shaped this answer, in plain
            English, so "Why this?" names real lookups instead of guessing. */
-        if (reads.length) send({ reads: readProvenance(reads) });
+        /* A backup-brain answer says so on the same provenance line —
+           a swapped model is never passed off as the usual one. */
+        const provenance = [
+          ...(reads.length ? readProvenance(reads) : []),
+          ...(brain === "backup" ? ["Answered by the backup brain (Gemini) — ChatGPT was unavailable just now"] : []),
+        ];
+        if (provenance.length) send({ reads: provenance });
 
         /* A live question used to bounce back to the browser for a second
            round trip — and on a slow connection the answer never landed,

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { sourceTier, type SourceTier } from "@/lib/sourceTier";
 import { useAwareness, AWARENESS_SECTIONS } from "@/providers/AwarenessProvider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -52,21 +53,17 @@ type Ping = {
 
 // Stage 6 — Street Signal: classify sources into a trust hierarchy.
 // Tier order = display order (top = most authoritative).
-type SourceTier = "official" | "local" | "community" | "web" | "ai";
 const TIER_META: Record<SourceTier, { label: string; hint: string; tone: string }> = {
-  official: { label: "Official",  hint: "Weather, calendars, gov feeds", tone: "bg-primary/15 text-primary ring-primary/40" },
+  yours:    { label: "Yours",     hint: "Your own records in Metro Echo", tone: "bg-secondary/40 text-secondary-foreground ring-border/60" },
+  official: { label: "Official",  hint: "Weather service, calendars", tone: "bg-primary/15 text-primary ring-primary/40" },
   local:    { label: "Local",     hint: "Maps, nearby places, transit",  tone: "bg-signal/15 text-signal-foreground ring-signal/40" },
   community:{ label: "Community", hint: "Reddit, forums, local chatter (kill-switched)", tone: "bg-accent/15 text-accent ring-accent/40" },
   web:      { label: "Web",       hint: "Search, news, broad lookups",   tone: "bg-warn/15 text-warn-foreground ring-warn/40" },
   ai:       { label: "AI",        hint: "Synthesis layer over above",    tone: "bg-muted/40 text-muted-foreground ring-border/60" },
 };
+/* Structural tiers live in one owner; the board only reads them. */
 function tierFor(source: string): SourceTier {
-  const s = source.toLowerCase();
-  if (s.includes("reddit") || s.includes("forum") || s.includes("community")) return "community";
-  if (s.includes("weather") || s.includes("meteo") || s.includes("calendar") || s.includes("gov")) return "official";
-  if (s.includes("local") || s.includes("places") || s.includes("nearby") || s.includes("maps") || s.includes("transit")) return "local";
-  if (s.includes("gemini") || s.includes("lovable-ai") || s.includes("synthesis") || s.includes("brief")) return "ai";
-  return "web";
+  return sourceTier(source).tier;
 }
 
 const FRESH_MS = 24 * 60 * 60 * 1000;
@@ -192,11 +189,11 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
 
   // Stage 6 — group sources by trust tier for the Street Signal panel.
   const tieredSources = useMemo(() => {
-    const map: Record<SourceTier, string[]> = { official: [], local: [], community: [], web: [], ai: [] };
+    const map: Record<SourceTier, string[]> = { yours: [], official: [], local: [], community: [], web: [], ai: [] };
     for (const s of sources) map[tierFor(s)].push(s);
     return map;
   }, [sources]);
-  const tierOrder: SourceTier[] = ["official", "local", "community", "web", "ai"];
+  const tierOrder: SourceTier[] = ["yours", "official", "local", "community", "web", "ai"];
   // Street/community tier rides the outside-lookup switch — when it's off, we surface that.
   const streetDisabled = !!controls && !controls.serpapi_enabled;
 
@@ -775,7 +772,8 @@ export function AwarenessHUD({ className, variant = "compact", activeLayer }: { 
                   ) : (() => {
                     const tier = tierFor(ping.label);
                     const tierLine: Record<SourceTier, string> = {
-                      official: "Official feed — weather, calendars, or government data. High trust.",
+                      yours: "Your own records — notes, promises, and plans already in Metro Echo.",
+                      official: "Official feed — the weather service or your calendars. High trust.",
                       local: "Local feed — maps, nearby places, or transit. Geographic context.",
                       community: "Community signal — Reddit, forums, local chatter. Use with judgement.",
                       web: "Web search — broad lookups and news. Verify before acting.",
