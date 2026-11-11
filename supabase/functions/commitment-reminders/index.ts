@@ -67,15 +67,6 @@ Deno.serve(async (req: Request) => {
     let telegramDisabled = 0;
     let pushSent = 0;
     let pushSkipped = 0;
-    let pushFailed = 0;
-    let pushUnconfigured = 0;
-    let pushNoSubscription = 0;
-    let pushDisabled = 0;
-
-    const vapidPublic = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
-    const vapidPrivate = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
-    const vapidSubject = Deno.env.get("VAPID_SUBJECT") ?? "";
-    const pushConfigured = !!(vapidPublic && vapidPrivate && vapidSubject);
 
     for (const c of due ?? []) {
       const lastMs = c.last_reminded_at ? new Date(c.last_reminded_at).getTime() : 0;
@@ -241,8 +232,7 @@ Deno.serve(async (req: Request) => {
         swept: due?.length ?? 0,
         emitted,
         telegramSent, telegramSkipped, telegramFailed, telegramUnlinked, telegramDisabled,
-        pushSent, pushSkipped, pushFailed, pushUnconfigured, pushNoSubscription, pushDisabled,
-        pushConfigured,
+        pushSent, pushSkipped,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
