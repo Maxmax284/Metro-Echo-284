@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
 import { isDriftKind } from "@/lib/drift";
+import { readCached, writeCached } from "@/lib/readCache";
 import {
   buildAttention,
   groupAttention,
