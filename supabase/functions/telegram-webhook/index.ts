@@ -155,7 +155,7 @@ import { afterLookLine, intentFromCaption, lookAtImage } from "../_shared/lookAt
 import { askForDayWords, readDay, readFlightAsk } from "../_shared/flightChat.ts";
 import { dropConfirmWords, dropFlightPlan, fileFlightByNumber, findFlightByNumber } from "../_shared/flightFile.ts";
 import { fitToBody } from "../_shared/responseDepth.ts";
-import { collectResponsesTurn, postResponsesTurn } from "../_shared/responsesChat.ts";
+import { collectResponsesTurn, postConverseTurn } from "../_shared/responsesChat.ts";
 import {
   calendarApprovalButtons,
   calendarEditButton,
@@ -1450,12 +1450,13 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
      the same turn the in-app Echo room streams. Streamed on the wire so a long
      read never times the function out; drained here because Telegram wants one
      reply, then the intents it called. */
-  const r = (readOnly || intents.length) ? null : await postResponsesTurn({
+  const converse = (readOnly || intents.length) ? null : await postConverseTurn({
     apiKey: Deno.env.get("LOVABLE_API_KEY") ?? "",
     messages,
     tools,
     effort: "low",
   });
+  const r = converse?.response ?? null;
   if (r && !r.ok) {
     /* Delivery is healthy and the capture is already recorded above. Each
        boundary gets its own honest sentence — a spent allowance, a busy
@@ -1493,6 +1494,8 @@ async function aiRespond(sb: SupabaseClient, userId: string, text: string, orgId
     console.error("ai empty turn", JSON.stringify({ runId: turn.runId ?? null }));
   }
   if (!reply) reply = turn?.text.trim() ?? "";
+  /* Never a silent swap: a backup-brain reply carries one plain line. */
+  if (reply && converse?.brain === "backup") reply = `${reply}\n\n(Answered by the backup brain — ChatGPT was unavailable just now.)`;
   /* A tool that was asked for and did not answer is a fact worth saying out
      loud. Silence used to come back as "On it.", which read like a job done. */
   let unanswered = 0;
