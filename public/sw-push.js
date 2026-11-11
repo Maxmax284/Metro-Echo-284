@@ -1,7 +1,8 @@
-// Metro Echo service worker — push delivery only.
-// No caching, no offline strategy in this pass. Capture-never-executes still applies:
-// the SW shows the notification; tapping it deep-links into the platform where the user
-// approves any action. The SW does not call APIs or mutate data on its own.
+// Metro Echo push handlers — imported by the app-shell worker (app-sw.js), so
+// one registration at "/" carries both the precached shell and push delivery.
+// Capture-never-executes still applies: the SW shows the notification; tapping
+// it deep-links into the platform where the user approves any action. The SW
+// does not call APIs or mutate data on its own.
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
