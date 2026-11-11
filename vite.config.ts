@@ -29,6 +29,10 @@ export default defineConfig(({ mode }) => ({
       /* Installability already ships as public/manifest.webmanifest. */
       manifest: false,
       workbox: {
+        /* The first visit hands control to the worker immediately — offline
+           startup must work from the very next reload, not the second one. */
+        clientsClaim: true,
+        skipWaiting: true,
         /* Navigations hit the network first; the precached shell only answers
            when there is no signal at all. OAuth and the workers themselves
            never fall back to the shell. */
