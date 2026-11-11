@@ -7,6 +7,7 @@ import { corsHeaders } from "../_shared/http.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { z } from "https://esm.sh/zod@3.23.8";
 import { AWARENESS_VOICE } from "../_shared/vantaVoice.ts";
+import { LIVE_FIX_SOURCES } from "../_shared/liveFixSources.ts";
 
 
 const Body = z.object({
@@ -45,16 +46,16 @@ Deno.serve(async (req: Request) => {
     const { question, section } = parsed.data;
 
     // Pull the user's live place + last few briefings as grounding.
-    // Mirror of LIVE_FIX_SOURCES in src/lib/placeMove.ts — the exact list the
-    // app's own active-place read accepts. A named/saved place is never the
-    // live ground: editing one bumps updated_at, and ordering by that alone
-    // teleported every answer to a place the user had left.
-    // A stamped row outranks a newer unstamped fix — the stamp is the user's
-    // deliberate "this is my ground", and a real move lifts it (placeMove).
+    // LIVE_FIX_SOURCES is the one server-side list (_shared/liveFixSources) —
+    // a named/saved place is never the live ground: editing one bumps
+    // updated_at, and ordering by that alone teleported every answer to a
+    // place the user had left. A stamped row outranks a newer unstamped fix —
+    // the stamp is the user's deliberate "this is my ground", and a real move
+    // lifts it (placeMove).
     const { data: place } = await supabase
       .from("awareness_places")
       .select("id,label,country,region,geo,stamped_at")
-      .filter("geo->>source", "in", '("device","map_picker","manual_search","nearby_suggestion","manual_fix")')
+      .filter("geo->>source", "in", `(${LIVE_FIX_SOURCES.map((s) => `"${s}"`).join(",")})`)
       .order("stamped_at", { ascending: false, nullsFirst: false })
       .order("updated_at", { ascending: false })
       .limit(1)
