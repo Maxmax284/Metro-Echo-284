@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -30,6 +30,7 @@ import { AmbientInteractions } from "@/components/shell/AmbientInteractions";
 import { DeskTransitOverlay } from "@/components/shell/DeskTransit";
 import { useRegisterServiceWorker } from "@/hooks/useRegisterServiceWorker";
 import { useDeliveryAck } from "@/hooks/useDeliveryAck";
+import { initOutboxFlush } from "@/lib/offlineOutbox";
 import Index from "./pages/Index.tsx";
 const GoogleCalendarReturn = lazy(() => import("./pages/oauth/GoogleCalendarReturn"));
 const GoogleReturn = lazy(() => import("./pages/oauth/GoogleReturn"));
@@ -70,6 +71,10 @@ const DeliveryAck = () => {
 
 const App = () => {
   useRegisterServiceWorker();
+
+  useEffect(() => {
+    initOutboxFlush();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

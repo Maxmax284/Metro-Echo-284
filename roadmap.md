@@ -19,6 +19,13 @@
 - [x] config.toml parity — 7 missing verify_jwt=false entries (calendar-sync, awareness-decay, awareness-drift-sweep, sherlock-watch, sherlock-digest, weather-tick, journey-watch)
 - [x] Fired all 15 cron-invoked functions by hand: all honest. calendar-sync "dead" was a false alarm (anon-Bearer test artifact; no-Authorization cron path syncs fine). gmail-sweep held on Google's API switch (external, user's console toggle)
 
+## Done this batch (Phase 3 — offline & resilience, verified)
+- [x] App-shell precache — vite-plugin-pwa generateSW → /app-sw.js (67 entries, 6 MB shell); guarded registrar src/lib/appSw.ts (never dev/preview/iframe, ?sw=off kill switch); NetworkFirst navigations with precached fallback, CacheFirst hashed assets, /~oauth excluded
+- [x] One registration at "/" — push handlers moved to public/sw-push.js, imported by app-sw.js (a second worker at the same scope was replacing the shell worker and killing offline startup); pushClient rides the shared registration
+- [x] Read cache — src/lib/readCache.ts (24h held reads); useWatches + useTodayDigest critical read seed from and refresh the held read; a failed refresh never blanks the board
+- [x] Offline outbox — src/lib/offlineOutbox.ts; captures/notes/promises written with no signal park on the device with a minted id + device receipt toast; reconnect replay is idempotent on the PK (duplicate key = already landed, never a twin); capture.synced_from_device receipt per replay; wired into GotSomethingChooser, CaptureWorkspace, VoiceCaptureCard
+- [x] Verified: production build served locally → SW active + 67 precache entries → network killed → app opens offline (sign-in shell renders) → reconnect recovers; 4 outbox tests pin the queue rules; full suite 2,385 passed (4 pre-known TZ-dependent Telegram/calendar date failures, untouched by this batch)
+
 ## Next
 - [x] Phase 2: Echo heads-up resolves real records (project/document/commitment/action/receipt/note/today); radar slip sky reads the watch's own place; intake-digest deleted; 4 toggle labels plain-English; AskVantaBar routed through the context door (component is not mounted anywhere — decide: mount or delete)
 - [x] Remainder done: commitment-reminders + awareness-drift-sweep push now route through reach.ts floorGate/reachPhone (one gate owns floors, quiet window, push toggle, receipts; drift-sweep messaging path gained the floor gate it lacked); cadence-sweep deleted (no callers, no cron — entity-resolve stayed, it's live via CapturesView); AskVantaBar mounted on Today (was orphaned); LIVE_FIX_SOURCES consolidated to one export per runtime (src/lib/placeMove.ts + _shared/liveFixSources.ts, three server mirrors removed); OfflineNote — one shared no-signal line in the shell above every room

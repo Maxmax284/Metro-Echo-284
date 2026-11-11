@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
 import { isDriftKind } from "@/lib/drift";
+import { readCached, writeCached } from "@/lib/readCache";
 import {
   buildAttention,
   groupAttention,
@@ -84,21 +85,36 @@ export function useTodayDigest(): TodayDigest {
 
   const loadCritical = useCallback(async () => {
     if (!loadedOnce.current) setLoadingCritical(true);
-    const [c, a] = await Promise.all([
-      applyScope(supabase.from("commitments").select("id, summary, due_at, priority"))
-        .eq("status", "open")
-        .order("due_at", { ascending: true, nullsFirst: false })
-        .limit(30),
-      applyScope(supabase.from("actions").select("id, title, risk, status, updated_at"))
-        .in("status", ["staged", "proposed"])
-        .order("updated_at", { ascending: false })
-        .limit(10),
-    ]);
-    setCommitments((c.data as DigestCommitment[]) ?? []);
-    setActions((a.data as DigestAction[]) ?? []);
+    const cacheKey = session?.user?.id ? `today_critical.${session.user.id}.${scopeKey}` : null;
+    try {
+      const [c, a] = await Promise.all([
+        applyScope(supabase.from("commitments").select("id, summary, due_at, priority"))
+          .eq("status", "open")
+          .order("due_at", { ascending: true, nullsFirst: false })
+          .limit(30),
+        applyScope(supabase.from("actions").select("id, title, risk, status, updated_at"))
+          .in("status", ["staged", "proposed"])
+          .order("updated_at", { ascending: false })
+          .limit(10),
+      ]);
+      if (c.error || a.error) throw (c.error ?? a.error);
+      setCommitments((c.data as DigestCommitment[]) ?? []);
+      setActions((a.data as DigestAction[]) ?? []);
+      if (cacheKey) writeCached(cacheKey, { commitments: c.data ?? [], actions: a.data ?? [] });
+    } catch {
+      /* No signal: the last good read stands in, and the shell's offline line
+         says it is held. A failed refresh never blanks the board. */
+      const cached = cacheKey
+        ? readCached<{ commitments: DigestCommitment[]; actions: DigestAction[] }>(cacheKey)
+        : null;
+      if (cached) {
+        setCommitments(cached.data.commitments);
+        setActions(cached.data.actions);
+      }
+    }
     setLoadingCritical(false);
     loadedOnce.current = true;
-  }, [applyScope]);
+  }, [applyScope, session?.user?.id, scopeKey]);
 
   const loadBackground = useCallback(async () => {
     if (!loadedOnce.current) setLoadingBackground(true);

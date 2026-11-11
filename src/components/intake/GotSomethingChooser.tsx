@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
 import { useStageAction } from "@/hooks/useStageAction";
+import { insertWithOutbox } from "@/lib/offlineOutbox";
 import { vantaToast } from "@/lib/vantaVoice";
 import { AftermathHint } from "@/components/aftermath/AftermathHint";
 import { cn } from "@/lib/utils";
@@ -87,26 +88,23 @@ export function GotSomethingChooser({
       /* A write is only real once the database says so. Every success line
          below is spoken after the insert came back clean, never before. */
       if (door === "park") {
-        const { error } = await supabase.from("notes").insert(
-          withScope({
-            user_id: user.id,
-            title: trimmed.slice(0, 60),
-            body: trimmed,
-            metadata: { source: "got_something", captured_at: new Date().toISOString() },
-          }) as never,
-        );
-        if (error) throw error;
-        vantaToast.success(`Parked in Inbox · ${destination}. Route it whenever you like.`);
+        const outcome = await insertWithOutbox("notes", withScope({
+          user_id: user.id,
+          title: trimmed.slice(0, 60),
+          body: trimmed,
+          metadata: { source: "got_something", captured_at: new Date().toISOString() },
+        }) as Record<string, unknown>, { label: "Parked note" });
+        if ("error" in outcome) throw outcome.error;
+        /* A queued note already spoke its device receipt. */
+        if (!outcome.queued) vantaToast.success(`Parked in Inbox · ${destination}. Route it whenever you like.`);
       } else if (door === "promise") {
-        const { error } = await supabase.from("commitments").insert(
-          withScope({
-            user_id: user.id,
-            summary: trimmed.slice(0, 200),
-            due_at: null,
-          }) as never,
-        );
-        if (error) throw error;
-        vantaToast.success(`Recorded as an open promise · ${destination}. Add a date in Commitments.`);
+        const outcome = await insertWithOutbox("commitments", withScope({
+          user_id: user.id,
+          summary: trimmed.slice(0, 200),
+          due_at: null,
+        }) as Record<string, unknown>, { label: "Open promise" });
+        if ("error" in outcome) throw outcome.error;
+        if (!outcome.queued) vantaToast.success(`Recorded as an open promise · ${destination}. Add a date in Commitments.`);
       } else {
         await stageAction({
           title: trimmed.slice(0, 120),

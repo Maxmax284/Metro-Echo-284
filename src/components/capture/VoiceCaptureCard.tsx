@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2, Check, AlertCircle } from "lucide-react";
 import { vantaToast as toast, vantaSay } from "@/lib/vantaVoice";
 import { useCaptureRoute } from "@/hooks/useCaptureRoute";
+import { insertWithOutbox } from "@/lib/offlineOutbox";
 import { cn } from "@/lib/utils";
 
 type RecognitionLike = {
@@ -117,37 +118,47 @@ export function VoiceCaptureCard() {
     if (!text) { toast.error({ title: "Nothing to save", description: "No transcript yet." }); return; }
     setSaving(true);
     try {
-      const { data: note, error } = await supabase
-        .from("notes")
-        .insert({
-          user_id: user.id,
-          title: text.slice(0, 60),
-          body: text,
-          tags: ["voice"],
-          metadata: {
-            source: "voice",
-            captured_at: new Date().toISOString(),
-            duration_seconds: elapsed,
-            locale: (navigator.language || "en-US"),
-            transcribed_locally: true,
-          },
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-
-      await recordRoute({
-        captureKind: "note",
-        captureId: note.id,
-        source: "voice",
-        suggestedRoute: "memory",
-        userAction: "routed",
-        newStatus: "needs_review",
-        auditEvent: "capture.voice_saved",
-        payload: { duration_seconds: elapsed, length: text.length },
+      const outcome = await insertWithOutbox("notes", {
+        user_id: user.id,
+        title: text.slice(0, 60),
+        body: text,
+        tags: ["voice"],
+        metadata: {
+          source: "voice",
+          captured_at: new Date().toISOString(),
+          duration_seconds: elapsed,
+          locale: (navigator.language || "en-US"),
+          transcribed_locally: true,
+        },
+      }, {
+        label: "Voice note",
+        route: {
+          captureKind: "note",
+          source: "voice",
+          suggestedRoute: "memory",
+          userAction: "routed",
+          newStatus: "needs_review",
+          auditEvent: "capture.voice_saved",
+          payload: { duration_seconds: elapsed, length: text.length },
+          scope: {},
+        },
       });
+      if ("error" in outcome) throw outcome.error;
 
-      toast.success(vantaSay?.fileIngested ? vantaSay.fileIngested("Voice note") : { title: "Voice note saved" });
+      /* Queued on the device: the route receipt replays with the sync. */
+      if (!outcome.queued) {
+        await recordRoute({
+          captureKind: "note",
+          captureId: outcome.id,
+          source: "voice",
+          suggestedRoute: "memory",
+          userAction: "routed",
+          newStatus: "needs_review",
+          auditEvent: "capture.voice_saved",
+          payload: { duration_seconds: elapsed, length: text.length },
+        });
+        toast.success(vantaSay?.fileIngested ? vantaSay.fileIngested("Voice note") : { title: "Voice note saved" });
+      }
       setFinalText("");
       setInterim("");
       setElapsed(0);

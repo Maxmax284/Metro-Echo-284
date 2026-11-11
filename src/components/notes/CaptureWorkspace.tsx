@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
 import { useCaptureRoute } from "@/hooks/useCaptureRoute";
+import { insertWithOutbox } from "@/lib/offlineOutbox";
 import { useDictation } from "@/hooks/useDictation";
 import { useStageAction } from "@/hooks/useStageAction";
 import { useAskThreads } from "@/providers/AskThreadProvider";
@@ -252,42 +253,57 @@ export function CaptureWorkspace() {
         },
       );
 
-      const { data: note, error } = await supabase
-        .from("notes")
-        .insert({
-          user_id: user.id,
-          ...scopeFields(),
-          title: (title.trim() || captureTitle(raw, mode)).slice(0, 120),
-          // The body is the readable layer; the evidence stays in metadata.layers.
-          body: clean || raw,
-          tags: [mode === "conversation" ? "conversation" : mode === "dictated" ? "voice" : "note"],
-          metadata: {
-            source: mode === "typed" ? "typed" : mode === "dictated" ? "voice" : "conversation",
-            captured_at: layers.raw.captured_at,
-            layers,
+      const routeSource = mode === "conversation" ? "conversation" : mode === "dictated" ? "voice" : "typed";
+      const outcome = await insertWithOutbox("notes", {
+        user_id: user.id,
+        ...scopeFields(),
+        title: (title.trim() || captureTitle(raw, mode)).slice(0, 120),
+        // The body is the readable layer; the evidence stays in metadata.layers.
+        body: clean || raw,
+        tags: [mode === "conversation" ? "conversation" : mode === "dictated" ? "voice" : "note"],
+        metadata: {
+          source: mode === "typed" ? "typed" : mode === "dictated" ? "voice" : "conversation",
+          captured_at: layers.raw.captured_at,
+          layers,
+        },
+      }, {
+        label: "Capture",
+        route: {
+          captureKind: "note",
+          source: routeSource,
+          suggestedRoute: "memory",
+          userAction: "routed",
+          newStatus: "needs_review",
+          auditEvent: "capture.note_saved",
+          payload: {
+            mode, length: raw.length, duration_seconds: elapsed,
+            found: matteredCount(found), segments: segments.length,
           },
-        } as never)
-        .select("id")
-        .single();
-      if (error) throw error;
-
-      await recordRoute({
-        captureKind: "note",
-        captureId: note.id,
-        source: mode === "conversation" ? "conversation" : mode === "dictated" ? "voice" : "typed",
-        suggestedRoute: "memory",
-        userAction: "routed",
-        newStatus: "needs_review",
-        auditEvent: "capture.note_saved",
-        payload: {
-          mode, length: raw.length, duration_seconds: elapsed,
-          found: matteredCount(found), segments: segments.length,
+          scope: scopeFields(),
         },
       });
+      if ("error" in outcome) throw outcome.error;
 
-      setSavedNoteId(note.id);
+      /* Queued on the device: the route receipt replays with the sync. */
+      if (!outcome.queued) {
+        await recordRoute({
+          captureKind: "note",
+          captureId: outcome.id,
+          source: routeSource,
+          suggestedRoute: "memory",
+          userAction: "routed",
+          newStatus: "needs_review",
+          auditEvent: "capture.note_saved",
+          payload: {
+            mode, length: raw.length, duration_seconds: elapsed,
+            found: matteredCount(found), segments: segments.length,
+          },
+        });
+      }
+
+      setSavedNoteId(outcome.id);
       if (mode === "conversation") setMattered(found);
-      toast.success({ title: captureVerdict(found) });
+      if (!outcome.queued) toast.success({ title: captureVerdict(found) });
       if (mode !== "conversation") {
         setText("");
         setTitle("");
