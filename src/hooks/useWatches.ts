@@ -5,11 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useScope } from "@/hooks/useScope";
 import { OPEN_WATCH_STATES, type Watch } from "@/lib/watch";
+import { readCached, writeCached } from "@/lib/readCache";
 
 export function useWatches(opts: { openOnly?: boolean; limit?: number } = {}) {
   const { user } = useAuth();
   const { applyScope, key: scopeKey } = useScope();
-  const [items, setItems] = useState<Watch[]>([]);
+  const cacheKey = user ? `watches.${user.id}.${scopeKey}.${opts.openOnly !== false ? "open" : "all"}` : null;
+  /* No signal on startup: the board opens with the last good read, and the
+     shell's offline line says it is held. */
+  const [items, setItems] = useState<Watch[]>(() => (cacheKey ? readCached<Watch[]>(cacheKey)?.data ?? [] : []));
   const [loading, setLoading] = useState(false);
   const [tick, setTick] = useState(0);
 
@@ -29,11 +33,20 @@ export function useWatches(opts: { openOnly?: boolean; limit?: number } = {}) {
         .order("updated_at", { ascending: false })
         .limit(opts.limit ?? 20);
       if (opts.openOnly !== false) q = q.in("state", OPEN_WATCH_STATES);
-      const { data } = await q;
-      if (!cancelled) {
+      try {
+        const { data, error } = await q;
+        if (cancelled) return;
+        if (error) throw error;
         setItems((data ?? []) as Watch[]);
-        setLoading(false);
+        if (cacheKey) writeCached(cacheKey, data ?? []);
+      } catch {
+        /* The held read stays on the board; a failed refresh never blanks it. */
+        if (!cancelled && cacheKey) {
+          const cached = readCached<Watch[]>(cacheKey);
+          if (cached) setItems(cached.data);
+        }
       }
+      if (!cancelled) setLoading(false);
     })();
     return () => {
       cancelled = true;
